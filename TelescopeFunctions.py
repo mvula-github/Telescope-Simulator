@@ -25,4 +25,5 @@ def __main__():
 
         print("File saved to:", file_to_save)
 
-__main__()
+if __name__ == '__main__':
+    __main__()
