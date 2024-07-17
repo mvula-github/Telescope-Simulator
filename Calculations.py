@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, time
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS
 from astropy.time import Time
 import astropy.units as u

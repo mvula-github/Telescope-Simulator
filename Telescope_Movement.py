@@ -1,3 +1,6 @@
+def rest_mode():
+    pass
+
 def __main__():
     pass
 
