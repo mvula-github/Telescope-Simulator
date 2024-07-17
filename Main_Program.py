@@ -1,5 +1,12 @@
 import os, sys
 
+# Global variables
+COMMAND_LIST = ["gd", "rest"]
+COMMAND_DESCRIPTIONS = ["Get current working directory", "Telescope rest mode"]
+
+def check_command():
+    pass
+
 def display_og_menu():
     pass
 
