@@ -42,7 +42,6 @@ def write_log(user, command, description):
     record = ""
     time = datetime.now().strftime("%H:%M:%S")
     date = datetime.now().date()
-    description = "Hello"
 
     record = str(date) + "\t\t" + time + "\t\t" + user + "\t\t" + command + "\t\t" + description
 
@@ -64,7 +63,7 @@ def append_to_file(file_path, content): # content - String variable
         print(f"An error occurred: {e}")
 
 def __main__():
-    write_log("Francois", "Rest", "Enter telescope rest mode")
+    pass
 
 if __name__ == '__main__':
     __main__()
