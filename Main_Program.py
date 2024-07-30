@@ -12,9 +12,9 @@ import os, sys
 def display_menu():
     """Displays the main menu with options for the user."""
     print("\n")
-    print("*********************************")
-    print("*    Radio Telescope Control    *")
-    print("*********************************")
+    print("*******************************")
+    print("   Radio Telescope Control     ")
+    print("*******************************")
     print("1. Telescope Control")
     print("2. Data Management")
     print("3. Coordinate Systems")
