@@ -47,6 +47,17 @@ def write_log(user, command, description):
 
     append_to_file(os.path.join(get_script_path(), "Data", "Logs.txt"), record)
 
+def display_logs():
+    file_path = os.path.join(get_script_path(), 'Resources', 'Logs.txt')
+
+    # Open the file in read mode
+    with open(file_path, 'r') as file:
+        # Read the contents of the file
+        contents = file.read()
+
+    # Display the contents in the terminal
+    print(contents)
+
 def append_to_file(file_path, content): # content - String variable 
     try:
         with open(file_path, "a") as file: # Open the file in append mode ('a'). This will append to existing content.

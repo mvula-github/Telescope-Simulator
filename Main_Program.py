@@ -1,13 +1,7 @@
 import os, sys
 
-# Global variables
-#COMMAND_LIST = ["gd", "rest"]
-#COMMAND_DESCRIPTIONS = ["Get current working directory", "Telescope rest mode"]
-
-#def check_command():
-   # pass
-
-
+# Custom libraries
+import Calculations as C, File_Handling as FH
 
 def display_menu():
     """Displays the main menu with options for the user."""
@@ -89,8 +83,8 @@ def __main__():
                 print(command_descriptions["reporting"])
                 # add reporting functionality
             elif dm_choice == "2":
-               print(command_descriptions["file_path"])
-               # add file path functionality
+                print(command_descriptions["file_path"])
+                # add file path functionality
             else:
                 print("Invalid choice")
 
@@ -114,9 +108,9 @@ def __main__():
             # add change directory functionality
             print("cd action executed")
         elif choice == "5":
-            print(command_descriptions["display_logs"])
-            # add display logs functionality
-            print("Display logs action executed")
+            print(command_descriptions["display_logs"], '\n')
+            
+            FH.display_logs()
         elif choice == "6":
             print(command_descriptions["exit"])
             exit()
@@ -126,4 +120,3 @@ def __main__():
 
 if __name__ == '__main__':
     __main__()
-    
