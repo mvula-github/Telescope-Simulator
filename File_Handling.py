@@ -38,19 +38,19 @@ def is_valid_directory(dir):
 
     return True, None  # No error message since the directory is valid
 
-def write_log():
+def write_log(user, command, description):
     record = ""
     time = datetime.now().strftime("%H:%M:%S")
     date = datetime.now().date()
 
-    record = str(date) + "\t" + time
+    record = str(date) + "\t\t" + time + "\t\t" + user + "\t\t" + command + "\t\t" + description
 
-    return record
+    append_to_file(os.path.join(get_script_path(), "Data", "Logs.txt"), record)
 
 def append_to_file(file_path, content): # content - String variable 
     try:
-        with open(file_path, "a") as file: # Open the file in write mode ('a'). This will append to existing content.
-            file.write(content)
+        with open(file_path, "a") as file: # Open the file in append mode ('a'). This will append to existing content.
+            file.write("\n" + content)
         print("Successfully written to file:", file_path) 
 
     except FileNotFoundError: # Handles the case where the file path is incorrect or inaccessible
@@ -63,7 +63,7 @@ def append_to_file(file_path, content): # content - String variable
         print(f"An error occurred: {e}")
 
 def __main__():
-    print(write_log())
+    pass
 
 if __name__ == '__main__':
     __main__()
