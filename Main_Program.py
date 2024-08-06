@@ -4,8 +4,8 @@ import os, sys
 import Calculations as C, File_Handling as FH
 
 def display_menu():
-    """Displays the main menu with options for the user."""
     print("\n")
+
     print("*******************************")
     print("   Radio Telescope Control     ")
     print("*******************************")
@@ -19,13 +19,10 @@ def display_menu():
     print("\n")
 
 def display_command_descriptions(command_descriptions):
-    """Displays descriptions for available commands."""
     for key, value in command_descriptions.items():
         print(f"{key}: {value}")
 
 def __main__():
-    """Main function for the radio telescope control software."""
-
     command_descriptions = {
         "telescope_control": "Control telescope movement and position.",
         "data_management": "Manage data related to observations and telescope operations.",
@@ -40,7 +37,8 @@ def __main__():
         "reporting": "Generate reports based on collected data.",
         "file_path": "Specify the location for saving data files.",
         "set_location": "Define the telescope's geographic location.",
-        "coordinate_conversion": "Convert between celestial and Alt/Az coordinates."
+        "celestial_to_altaz_conversion": "Convert from celestial coordinates (ra and dec) to altaz degrees.",
+        "altaz_to_celestial_conversion": "Convert from alt az degrees to celestial coordinates (ra and dec)."
     }
 
 
@@ -99,11 +97,23 @@ def __main__():
                 print(command_descriptions["set_location"])
                 # add set locations functionality
             elif cs_choice == "2":
-                print(command_descriptions["coordinate_conversion"])
-                # add coordinate conversion functionality
+                print(command_descriptions["celestial_to_altaz_conversion"], '\n')
+                ra = float(input("Enter the right ascesion (ra) value: "))
+                dec = float(input("Enter the declination (dec) value: "))
+
+                alt_deg, az_deg = C.celestial_to_altaz(ra, dec)
+
+                print(f"Current Location: {C.get_location_and_elevation()}")
+                print(f"Altitude: {alt_deg:.2f} degrees, Azimuth: {az_deg:.2f} degrees")
             elif cs_choice == "3":
-                print(command_descriptions["coordinate_conversion"])
-                # add coordinate conversion functionality
+                print(command_descriptions["altaz_to_celestial_conversion"])
+                alt = float(input("Enter the altitude (alt) value: "))
+                az = float(input("Enter the azimuth (az) value: "))
+
+                ra, dec = C.altaz_to_celestial(alt, az)
+
+                print(f"Current Location: {C.get_location_and_elevation()}")
+                print(f"Celestial Coordinates (ra, dec): ({ra}, {dec})")
             else:
                 print("Invalid choice")
 
