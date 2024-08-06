@@ -34,8 +34,10 @@ def celestial_to_altaz(ra, dec):
     # Variables
     time = Time.now()
     lat, lon, elev = get_location_and_elevation()
+    ra = ra*u.hourangle
+    dec = dec*u.deg
 
-    sky_coord = SkyCoord(ra = ra, dec = dec, frame = 'icrs')
+    sky_coord = SkyCoord(ra, dec, frame = 'icrs')
     location = EarthLocation(lat, lon, elev)
 
     altaz_frame = AltAz(obstime = time, location = location) # Create an AltAz frame at the specified location and time
