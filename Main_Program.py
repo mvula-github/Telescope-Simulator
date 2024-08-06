@@ -91,13 +91,17 @@ def __main__():
         elif choice == '3':
             print("Coordinate Systems Menu:")
             print("1. Set Location")
-            print("2. Coordinate Conversion")
+            print("2. Convert Celestial Frame to AltAz Degrees")
+            print("3. Convert AltAz Degrees to Celestial Frame")
             print("\n")
             cs_choice = input("Enter your choice: ")
             if cs_choice == "1":
                 print(command_descriptions["set_location"])
                 # add set locations functionality
             elif cs_choice == "2":
+                print(command_descriptions["coordinate_conversion"])
+                # add coordinate conversion functionality
+            elif cs_choice == "3":
                 print(command_descriptions["coordinate_conversion"])
                 # add coordinate conversion functionality
             else:
