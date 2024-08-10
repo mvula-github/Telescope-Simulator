@@ -3,6 +3,7 @@ import os, sys
 # Custom libraries
 import Calculations as C, File_Handling as FH
 
+
 def display_menu():
     print("\n")
 
@@ -41,7 +42,7 @@ def __main__():
         "altaz_to_celestial_conversion": "Convert from alt az degrees to celestial coordinates (ra and dec)."
     }
 
-
+    user = input("Enter your username: ") # Get username for logging
 
     while True:
         display_menu() # Display the main menu
@@ -58,15 +59,19 @@ def __main__():
             tc_choice = input("Enter your choice: ")
             if tc_choice == "1":
                 print(command_descriptions["azimuth_control"])
+                FH.write_log(user,"Telescope control","Azimuth control selected")
                 # add azimuth control functionality
             elif tc_choice == "2":
                 print(command_descriptions["elevation_control"])
+                FH.write_log(user, "Telescope Control", "Elevation Control selected")
                 # add elevation control functionality
             elif tc_choice == "3":
                 print(command_descriptions["tracking"])
+                FH.write_log(user, "Telescope Control", "Tracking selected")
                 # add tracking functionality
             elif tc_choice == "4":
                 print(command_descriptions["rest_mode"])
+                FH.write_log(user, "Telescope Control", "Rest Mode selected")
                 # add rest mode functionality
             else:
                 print("Invalid choice")
@@ -79,9 +84,11 @@ def __main__():
             dm_choice = input("Enter your choice: ")
             if dm_choice == "1":
                 print(command_descriptions["reporting"])
+                FH.write_log(user, "Data Management", "Reporting selected")
                 # add reporting functionality
             elif dm_choice == "2":
                 print(command_descriptions["file_path"])
+                FH.write_log(user, "Data Management", "File Path selected")
                 # add file path functionality
             else:
                 print("Invalid choice")
@@ -95,6 +102,7 @@ def __main__():
             cs_choice = input("Enter your choice: ")
             if cs_choice == "1":
                 print(command_descriptions["set_location"])
+                FH.write_log(user, "Coordinate Systems", "Set Location selected")
                 # add set locations functionality
             elif cs_choice == "2":
                 print(command_descriptions["celestial_to_altaz_conversion"], '\n')
@@ -105,6 +113,7 @@ def __main__():
 
                 print(f"Current Location: {C.get_location_and_elevation()}")
                 print(f"Altitude: {alt_deg:.2f} degrees, Azimuth: {az_deg:.2f} degrees")
+                FH.write_log(user, "Coordinate Systems", f"Celestial to Altaz Conversion: {ra}, {dec} -> {alt_deg:.2f}, {az_deg:.2f}")
             elif cs_choice == "3":
                 print(command_descriptions["altaz_to_celestial_conversion"])
                 alt = float(input("Enter the altitude (alt) value: "))
@@ -114,19 +123,28 @@ def __main__():
 
                 print(f"Current Location: {C.get_location_and_elevation()}")
                 print(f"Celestial Coordinates (ra, dec): ({ra}, {dec})")
+                FH.write_log(user, "Coordinate Systems", f"Altaz to Celestial Conversion: {alt}, {az} -> {ra:.2f}, {dec:.2f}")
             else:
                 print("Invalid choice")
 
         elif choice == '4':
             print(command_descriptions["change_directory"])
-            # add change directory functionality
-            print("cd action executed")
+            directory = input("Enter new directory: ")
+            try:
+              os.chdir(directory)
+              FH.write_log(user, "Change Directory", f"Changed directory to: {os.getcwd()}")
+              print(f"Changed directory to: {os.getcwd()}")
+            except OSError:
+              print("Directory change failed.")
+              FH.write_log(user, "Change Directory", f"Directory change failed: {directory}")
+
         elif choice == "5":
             print(command_descriptions["display_logs"], '\n')
-            
+            FH.write_log(user, "Display Logs", "Accessed system logs")
             FH.display_logs()
         elif choice == "6":
             print(command_descriptions["exit"])
+            FH.write_log(user,"Exit","Terminated the program")
             exit()
         else:
             print("Invalid choice. Please try again.")
