@@ -59,20 +59,21 @@ def __main__():
             tc_choice = input("Enter your choice: ")
             if tc_choice == "1":
                 print(command_descriptions["azimuth_control"])
-                FH.write_log(user,"Telescope control","Azimuth control selected")
                 # add azimuth control functionality
+                FH.write_log(user,"Telescope control","Azimuth control initiated")
             elif tc_choice == "2":
                 print(command_descriptions["elevation_control"])
-                FH.write_log(user, "Telescope Control", "Elevation Control selected")
                 # add elevation control functionality
+                FH.write_log(user, "Telescope Control", "Elevation Control initiated")
+                
             elif tc_choice == "3":
                 print(command_descriptions["tracking"])
-                FH.write_log(user, "Telescope Control", "Tracking selected")
                 # add tracking functionality
+                FH.write_log(user, "Telescope Control", "Tracking initiated")
             elif tc_choice == "4":
                 print(command_descriptions["rest_mode"])
-                FH.write_log(user, "Telescope Control", "Rest Mode selected")
                 # add rest mode functionality
+                FH.write_log(user, "Telescope Control", "Rest Mode initiated")
             else:
                 print("Invalid choice")
 
@@ -84,12 +85,12 @@ def __main__():
             dm_choice = input("Enter your choice: ")
             if dm_choice == "1":
                 print(command_descriptions["reporting"])
-                FH.write_log(user, "Data Management", "Reporting selected")
-                # add reporting functionality
+                # Replace with actual reporting logic
+                FH.write_log(user, "Data Management", "Report Generation initiated")
             elif dm_choice == "2":
                 print(command_descriptions["file_path"])
-                FH.write_log(user, "Data Management", "File Path selected")
-                # add file path functionality
+                FH.write_log(user, "Data Management", "Changed the File Path ")
+                # Replace with actual file path setting logic
             else:
                 print("Invalid choice")
 
@@ -102,7 +103,7 @@ def __main__():
             cs_choice = input("Enter your choice: ")
             if cs_choice == "1":
                 print(command_descriptions["set_location"])
-                FH.write_log(user, "Coordinate Systems", "Set Location selected")
+                FH.write_log(user, "Coordinate Systems", "Defined the Geographic Location of the Telescope ")
                 # add set locations functionality
             elif cs_choice == "2":
                 print(command_descriptions["celestial_to_altaz_conversion"], '\n')
