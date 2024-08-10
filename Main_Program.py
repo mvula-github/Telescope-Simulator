@@ -60,20 +60,20 @@ def __main__():
             if tc_choice == "1":
                 print(command_descriptions["azimuth_control"])
                 # add azimuth control functionality
-                FH.write_log(user,"Telescope control","Azimuth control initiated")
+                FH.write_log(user,"Azimuth Control","Azimuth control initiated")
             elif tc_choice == "2":
                 print(command_descriptions["elevation_control"])
                 # add elevation control functionality
-                FH.write_log(user, "Telescope Control", "Elevation Control initiated")
+                FH.write_log(user, "Elevation Control", "Elevation Control initiated")
                 
             elif tc_choice == "3":
                 print(command_descriptions["tracking"])
                 # add tracking functionality
-                FH.write_log(user, "Telescope Control", "Tracking initiated")
+                FH.write_log(user, "Tracking", "Tracking initiated")
             elif tc_choice == "4":
                 print(command_descriptions["rest_mode"])
                 # add rest mode functionality
-                FH.write_log(user, "Telescope Control", "Rest Mode initiated")
+                FH.write_log(user, "Rest Mode", "Rest Mode initiated")
             else:
                 print("Invalid choice")
 
@@ -86,10 +86,10 @@ def __main__():
             if dm_choice == "1":
                 print(command_descriptions["reporting"])
                 # Replace with actual reporting logic
-                FH.write_log(user, "Data Management", "Report Generation initiated")
+                FH.write_log(user, "Reporting", "Report Generation initiated")
             elif dm_choice == "2":
                 print(command_descriptions["file_path"])
-                FH.write_log(user, "Data Management", "Changed the File Path ")
+                FH.write_log(user, "File Path", "Changed the File Path ")
                 # Replace with actual file path setting logic
             else:
                 print("Invalid choice")
@@ -103,7 +103,7 @@ def __main__():
             cs_choice = input("Enter your choice: ")
             if cs_choice == "1":
                 print(command_descriptions["set_location"])
-                FH.write_log(user, "Coordinate Systems", "Defined the Geographic Location of the Telescope ")
+                FH.write_log(user, "Set Location", "Defined the Geographic Location of the Telescope ")
                 # add set locations functionality
             elif cs_choice == "2":
                 print(command_descriptions["celestial_to_altaz_conversion"], '\n')
@@ -114,7 +114,7 @@ def __main__():
 
                 print(f"Current Location: {C.get_location_and_elevation()}")
                 print(f"Altitude: {alt_deg:.2f} degrees, Azimuth: {az_deg:.2f} degrees")
-                FH.write_log(user, "Coordinate Systems", f"Celestial to Altaz Conversion: {ra}, {dec} -> {alt_deg:.2f}, {az_deg:.2f}")
+                FH.write_log(user, "Convert Celestial Frame to AltAz Degrees", f"Celestial to Altaz Conversion: {ra}, {dec} -> {alt_deg:.2f}, {az_deg:.2f}")
             elif cs_choice == "3":
                 print(command_descriptions["altaz_to_celestial_conversion"])
                 alt = float(input("Enter the altitude (alt) value: "))
@@ -124,7 +124,7 @@ def __main__():
 
                 print(f"Current Location: {C.get_location_and_elevation()}")
                 print(f"Celestial Coordinates (ra, dec): ({ra}, {dec})")
-                FH.write_log(user, "Coordinate Systems", f"Altaz to Celestial Conversion: {alt}, {az} -> {ra:.2f}, {dec:.2f}")
+                FH.write_log(user, "Convert AltAz Degrees to Celestial Frame", f"Altaz to Celestial Conversion: {alt}, {az} -> {ra:.2f}, {dec:.2f}")
             else:
                 print("Invalid choice")
 
