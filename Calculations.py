@@ -65,7 +65,7 @@ def altaz_to_celestial(alt_deg, az_deg):
     return ra, dec
 
 def __main__():
-    alt_deg, az_deg = celestial_to_altaz(ra = 16*u.hourangle, dec = -23*u.deg) # Convert celestial reference frame to alt/az degrees
+    alt_deg, az_deg = celestial_to_altaz(ra = 16, dec = -23) # Convert celestial reference frame to alt/az degrees
     ra, dec = altaz_to_celestial(alt_deg, az_deg) # Convert alt/az degrees to a celestial frame 
 
     print(f"Current Location: {get_location_and_elevation()}")
