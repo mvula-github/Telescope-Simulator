@@ -1,19 +1,11 @@
-import os, requests
+import requests, geocoder, astropy.units as u
 
-from astropy import coordinates as coord
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS
 from astropy.time import Time
-import astropy.units as u
-from astroquery.simbad import Simbad
-from astroquery.vizier import Vizier
-from astroquery.ned import Ned
-from astropy.utils.data import download_file
-
-import geocoder
-from geopy.geocoders import Nominatim
+from astroquery.ipac.ned import Ned
 
 # Get current location (latitude, longitude, and elevation)
-def get_location_and_elevation():
+def ip_get_location_and_elevation():
     # Get the geolocation data based on the IP address
     g = geocoder.ip('me')
     
@@ -51,44 +43,47 @@ def get_celestial_object_details(code):
         return code, name, ra, dec
     else:
         return None, None, None, None
-    
+
 def convert_altaz_to_radec(alt, az):
-    now = Time.now() # Get current time
-    latitude, longitude, elevation = get_location_and_elevation()
-    
-    observer_location = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation * u.m) # Define the observer's location
-    
-    altaz_frame = AltAz(obstime=now, location=observer_location) # Define the AltAz frame
-    
-    altaz_coords = SkyCoord(alt=alt * u.deg, az=az * u.deg, frame=altaz_frame) # Create an AltAz coordinate object
-    icrs_coords = altaz_coords.transform_to(ICRS) # Convert to ICRS (RA and Dec)
-    
-    return icrs_coords.ra, icrs_coords.dec
+    now = Time.now()  # Get current time
+    latitude, longitude, elevation = ip_get_location_and_elevation()
+
+    if latitude is None or longitude is None or elevation is None:
+        raise ValueError("Could not retrieve location or elevation data.")
+
+    observer_location = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation * u.m)  # Define the observer's location
+    altaz_frame = AltAz(obstime=now, location=observer_location)  # Define the AltAz frame
+
+    altaz_coords = SkyCoord(alt=alt * u.deg, az=az * u.deg, frame=altaz_frame)  # Create an AltAz coordinate object
+    icrs_coords = altaz_coords.transform_to(ICRS)  # Convert to ICRS (RA and Dec)
+
+    return icrs_coords.ra.hourangle, icrs_coords.dec.degree
 
 def convert_radec_to_altaz(ra, dec):
-    time = Time.now()
-    latitude, longitude, elevation = get_location_and_elevation()
-    ra = ra*u.hourangle
-    dec = dec*u.deg
+    now = Time.now()  # Get current time
+    latitude, longitude, elevation = ip_get_location_and_elevation()
 
-    sky_coord = SkyCoord(ra, dec, frame = 'icrs')
-    location = EarthLocation(latitude, longitude, elevation)
+    if latitude is None or longitude is None or elevation is None:
+        raise ValueError("Could not retrieve location or elevation data.")
 
-    altaz_frame = AltAz(obstime = time, location = location) # Create an AltAz frame at the specified location and time
-    altaz_coord = sky_coord.transform_to(altaz_frame) # Transform the celestial coordinate to the AltAz frame
+    observer_location = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation * u.m)  # Define the observer's location
+    icrs_coords = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg, frame=ICRS)  # Define the RA/Dec coordinates in ICRS frame
 
-    return altaz_coord.alt.degree, altaz_coord.az.degree
+    altaz_frame = AltAz(obstime=now, location=observer_location)  # Define the AltAz frame
+    altaz_coords = icrs_coords.transform_to(altaz_frame)  # Convert to AltAz
+
+    return altaz_coords.alt.degree, altaz_coords.az.degree
 
 def __main__():
-    latitude, longitude, elevation = get_location_and_elevation()
+    latitude, longitude, elevation = ip_get_location_and_elevation()
     object_code, object_name, ra, dec = get_celestial_object_details("M31") # Andromeda Galaxy
     alt_converted, az_converted = convert_radec_to_altaz(ra, dec)
     ra_converted, dec_converted = convert_altaz_to_radec(alt_converted, az_converted)
 
     print(f"Current Location:  Latitude: {latitude}  Longitude: {longitude}  Elevation: {elevation}")
     print(f"Celestial Object Details:  Code: {object_code}  Name: {object_name}  RA: {ra}  DEC: {dec}")
-    print(f"Altaz converted to ra and dec:  RA: {ra_converted}  DEC: {dec_converted}")
     print(f"radec converted to alt and az:  ALT: {alt_converted}  AZ: {az_converted}")
+    print(f"Altaz converted to ra and dec:  RA: {ra_converted}  DEC: {dec_converted}")
 
 if __name__ == '__main__':
     __main__()
