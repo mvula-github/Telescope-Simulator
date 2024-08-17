@@ -45,7 +45,7 @@ def write_log(user, command, description):
 
     record = str(date) + "\t\t" + time + "\t\t" + user + "\t\t" + command + "\t\t" + description
 
-    append_to_file(os.path.join(get_script_path(), "Data", "Logs.txt"), record)
+    append_to_file(os.path.join(get_script_path(), "Resources", "Logs.txt"), record)
 
 def display_logs():
     file_path = os.path.join(get_script_path(), 'Resources', 'Logs.txt')
