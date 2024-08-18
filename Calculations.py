@@ -1,30 +1,43 @@
-import requests, geocoder, astropy.units as u
+import time, requests, geocoder, astropy.units as u
 
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS
 from astropy.time import Time
 from astroquery.ipac.ned import Ned
 
-# Get current location (latitude, longitude, and elevation)
-def ip_get_location_and_elevation():
-    # Get the geolocation data based on the IP address
-    g = geocoder.ip('me')
+def get_location_and_elevation(method = 'stored'):
+    latitude, longitude, elevation = None, None, None
+    retries = 3
+    delay = 3
     
-    if not g.ok:
-        return None, None, None
-    
-    latitude, longitude = g.latlng
-    
-    # Get the elevation data
-    response = requests.get(f'https://api.open-elevation.com/api/v1/lookup?locations={latitude},{longitude}')
-    if response.status_code == 200:
-        elevation_data = response.json()
-        if 'results' in elevation_data and len(elevation_data['results']) > 0:
-            elevation = elevation_data['results'][0]['elevation']
+    if method == 'ip':
+        g = geocoder.ip('me')
+        
+        if g.ok:
+            latitude, longitude = g.latlng
+            
+            # Retry mechanism for elevation API
+            for attempt in range(retries):
+                try:
+                    response = requests.get(f'https://api.open-elevation.com/api/v1/lookup?locations={latitude},{longitude}')
+                    response.raise_for_status()
+                    
+                    elevation_data = response.json()
+                    if 'results' in elevation_data and len(elevation_data['results']) > 0:
+                        elevation = elevation_data['results'][0]['elevation']
+                        break
+                    else:
+                        print("No elevation data found in the response.")
+                except requests.RequestException as e:
+                    print(f"Attempt {attempt + 1} failed: {e}")
+                    if attempt < retries - 1:
+                        time.sleep(delay)  # Wait before retrying
+            else:
+                print("Failed to fetch elevation data after retries.")
         else:
-            elevation = None
-    else:
-        elevation = None
-
+            print("Error retrieving IP-based location.")
+    else: # Stored values
+        latitude, longitude, elevation = -26.7167, 27.1, 1100
+    
     return latitude, longitude, elevation
 
 def get_celestial_object_details(code):
@@ -46,7 +59,7 @@ def get_celestial_object_details(code):
 
 def convert_altaz_to_radec(alt, az):
     now = Time.now()  # Get current time
-    latitude, longitude, elevation = ip_get_location_and_elevation()
+    latitude, longitude, elevation = get_location_and_elevation()
 
     if latitude is None or longitude is None or elevation is None:
         raise ValueError("Could not retrieve location or elevation data.")
@@ -61,7 +74,7 @@ def convert_altaz_to_radec(alt, az):
 
 def convert_radec_to_altaz(ra, dec):
     now = Time.now()  # Get current time
-    latitude, longitude, elevation = ip_get_location_and_elevation()
+    latitude, longitude, elevation = get_location_and_elevation()
 
     if latitude is None or longitude is None or elevation is None:
         raise ValueError("Could not retrieve location or elevation data.")
@@ -75,7 +88,7 @@ def convert_radec_to_altaz(ra, dec):
     return altaz_coords.alt.degree, altaz_coords.az.degree
 
 def __main__():
-    latitude, longitude, elevation = ip_get_location_and_elevation()
+    latitude, longitude, elevation = get_location_and_elevation()
     object_code, object_name, ra, dec = get_celestial_object_details("M31") # Andromeda Galaxy
     alt_converted, az_converted = convert_radec_to_altaz(ra, dec)
     ra_converted, dec_converted = convert_altaz_to_radec(alt_converted, az_converted)

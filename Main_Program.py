@@ -1,6 +1,3 @@
-import os, string
-
-# Custom libraries
 import Calculations as C, File_Handling as FH, Telescope_Movement as TM
 
 USER, PASSWORD = 'f', 'f'
@@ -25,7 +22,7 @@ COMMAND_DESCRIPTIONS = {
     "Display All Commands & Descriptions": "Display list of all commands in program and their descriptions. "
 }
 
-MAIN_MENU = ["1. Telescope Control", 
+MAIN_MENU = ["1. Telescope Control",
             "2. Configure Settings",
             "3. Coordinate System",
             "4. Display Data",
@@ -81,8 +78,8 @@ def telescope_control_functions(choice):
 
         # ADD FUNCTIONALITY TO MOVE TELESCOPE HERE
     elif choice == 2: # Point to radec
-        ra = float(input("Enter Ra value: "))
-        dec = float(input("Enter dec value"))
+        ra = input("Enter Ra value: ")
+        dec = input("Enter dec value: ")
         C.convert_radec_to_altaz(ra, dec)
 
         # ADD FUNCTIONALITY TO MOVE TELESCOPE HERE
@@ -116,8 +113,8 @@ def coordinate_functions(choice):
 
         print(f"Altaz converted to ra and dec:  RA: {ra}  DEC: {dec}")
     elif choice == 2: # Convert Ra & Dec to AltAZ
-        ra = float(input("Enter Ra value: "))
-        dec = float(input("Enter dec value"))
+        ra = input("Enter Ra value: ")
+        dec = input("Enter dec value: ")
         alt, az = C.convert_radec_to_altaz(ra, dec)
 
         print(f"radec converted to alt and az:  ALT: {alt}  AZ: {az}")
@@ -129,7 +126,6 @@ def display_sys_data_functions(choice):
     if choice == 1: # Display location
         print("(Latiude, Longitude, Elevation)")
         print(f"IP: {C.ip_get_location_and_elevation()}")
-        # print(f"GPS: {}")
         # print(f"Last Saved: {}")
     elif choice == 2: # Display telescope logs
         FH.display_logs()
