@@ -72,7 +72,25 @@ def convert_altaz_to_radec(alt, az):
 
     return icrs_coords.ra.hourangle, icrs_coords.dec.degree
 
-def convert_radec_to_altaz(ra, dec):
+def convert_radec_to_altaz(ra, dec, frame='icrs'):
+    # Determine the format and unit for RA/Dec
+    if isinstance(ra, (float, int)) and isinstance(dec, (float, int)):
+        # Assume inputs are in degrees
+        icrs_coords = SkyCoord(ra, dec, frame=frame, unit='deg')
+    elif isinstance(ra, str) and isinstance(dec, str):
+        # Assume inputs are in sexagesimal format with units specified
+        if "h" in ra or "d" in dec:
+            # Format like '00h42m30s' and '+41d12m00s'
+            icrs_coords = SkyCoord(ra, dec, frame=frame)
+        else:
+            # Format like '00 42 30' and '+41 12 00', specify units explicitly
+            icrs_coords = SkyCoord(ra, dec, frame=frame, unit=(u.hourangle, u.deg))
+    elif isinstance(ra, str) and dec is None:
+        # Single string input, e.g., '00:42.5 +41:12'
+        icrs_coords = SkyCoord(ra, frame=frame, unit=(u.hourangle, u.deg))
+    else:
+        raise ValueError("Unsupported RA/Dec format. Please provide RA and Dec in a supported format.")
+
     now = Time.now()  # Get current time
     latitude, longitude, elevation = get_location_and_elevation()
 
@@ -80,7 +98,6 @@ def convert_radec_to_altaz(ra, dec):
         raise ValueError("Could not retrieve location or elevation data.")
 
     observer_location = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation * u.m)  # Define the observer's location
-    icrs_coords = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg, frame=ICRS)  # Define the RA/Dec coordinates in ICRS frame
 
     altaz_frame = AltAz(obstime=now, location=observer_location)  # Define the AltAz frame
     altaz_coords = icrs_coords.transform_to(altaz_frame)  # Convert to AltAz

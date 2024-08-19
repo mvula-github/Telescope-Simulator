@@ -125,8 +125,8 @@ def coordinate_functions(choice):
 def display_sys_data_functions(choice):
     if choice == 1: # Display location
         print("(Latiude, Longitude, Elevation)")
-        print(f"IP: {C.ip_get_location_and_elevation()}")
-        # print(f"Last Saved: {}")
+        print(f"IP: {C.get_location_and_elevation('ip')}")
+        print(f"Last Saved: {C.get_location_and_elevation('stored')}")
     elif choice == 2: # Display telescope logs
         FH.display_logs()
     elif choice == 3: # Display commands & descriptions
