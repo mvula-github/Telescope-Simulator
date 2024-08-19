@@ -19,7 +19,8 @@ COMMAND_DESCRIPTIONS = {
     "Convert Ra & Dec to Alt & Az": "Convert Ra (right ascension) & Dec (declination) values to Alt (altitude) & Az (azimuth) degrees.",
     "Display location": "Display location using IP, GPS, and the last stored location in the configuration file. ",
     "Display Telescope Logs": "Display log files created by software. ",
-    "Display All Commands & Descriptions": "Display list of all commands in program and their descriptions. "
+    "Display All Commands & Descriptions": "Display list of all commands in program and their descriptions. ",
+    "Display Available Celestial Objects": "Display list of all celestial objects that are in a certain radius from ra (right ascension) & dec (declination) values. "
 }
 
 MAIN_MENU = ["1. Telescope Control",
@@ -45,7 +46,8 @@ COORDINATE_MENU = ["1. Convert Alt & Az to Ra & Dec",
 DISPLAY_SYS_DATA_MENU = ["1. Display Location",
                         "2. Display Telescope Logs",
                         "3. Display All Commands & Descriptions",
-                        "4. back"]
+                        "4. Display Available Celestial Objects",
+                        "5. back"]
 
 def display_menu(menu_num):
     print("\n")
@@ -134,7 +136,12 @@ def display_sys_data_functions(choice):
 
         for command, description in COMMAND_DESCRIPTIONS.items():
             print(f"{command}: {description}")
-    elif choice == 4: # Back to main menu, do not check this value
+    elif choice == 4: # List celestial objects
+        ra = input("Enter Ra degree: ")
+        dec = input("Enter dec degree: ")
+
+        C.list_celestial_objects_in_region(ra, dec, radius = 0.1)
+    elif choice == 5: # Back to main menu, do not check this value
         pass
     else: print("Invalid input, please enter a number next to the command you want to execute.")
 
