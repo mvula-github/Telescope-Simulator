@@ -2,7 +2,7 @@ import time, keyboard, Calculations as C
 
 # Telescope limit degrees
 ALTITUDE_LIMITS = (-75, 75) 
-AZIMUTH_LIMITS = (-340, 340)
+AZIMUTH_LIMITS = (-120, 120)
 
 # Configuration variables
 PING_RA_DEC = 3 # Ping ra and dec values every # seconds
