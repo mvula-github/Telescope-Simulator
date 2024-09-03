@@ -140,7 +140,7 @@ def display_sys_data_functions(choice):
         ra = input("Enter Ra degree: ")
         dec = input("Enter dec degree: ")
 
-        C.list_celestial_objects_in_region(ra, dec, radius = 0.1)
+        C.list_available_celestial_objects(ra, dec, radius = 0.1)
     elif choice == 5: # Back to main menu, do not check this value
         pass
     else: print("Invalid input, please enter a number next to the command you want to execute.")
