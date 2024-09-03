@@ -1,4 +1,4 @@
-import time, requests, geocoder, astropy.units as u
+import Telescope_Movement as TM, time, requests, geocoder, astropy.units as u
 
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS
 from astropy.time import Time
@@ -57,22 +57,13 @@ def get_celestial_object_details(code):
     else:
         return None, None, None, None
 
-def list_celestial_objects_in_region(ra, dec, radius=0.1):
+# Display list of celestial object within a certain radius of a ra, dec coordinate
+def list_available_celestial_objects(ra, dec, radius = 0.1):
     frame = 'icrs'
 
     try:
-        # Determine format and unit for RA/Dec
-        if isinstance(ra, (float, int)) and isinstance(dec, (float, int)): # Degree format
-            icrs_coords = SkyCoord(ra, dec, frame=frame, unit='deg') 
-        elif isinstance(ra, str) and isinstance(dec, str):
-            if "h" in ra or "d" in dec: # Sexagesimal format
-                icrs_coords = SkyCoord(ra, dec, frame=frame) # Format like '00h42m30s' and '+41d12m00s'
-            else:
-                icrs_coords = SkyCoord(ra, dec, frame=frame, unit=(u.hourangle, u.deg)) # Format like '00 42 30' and '+41 12 00', specify units explicitly
-        elif isinstance(ra, str) and dec is None:
-            icrs_coords = SkyCoord(ra, frame=frame, unit=(u.hourangle, u.deg)) # Single string input, e.g., '00:42.5 +41:12'
-        else:
-            raise ValueError("Unsupported RA/Dec format. Please provide RA and Dec in a supported format.")
+        ra_deg, dec_deg = convert_radec_to_degrees(ra, dec)
+        icrs_coords = SkyCoord(ra_deg, dec_deg, frame=frame, unit='deg') 
         
         # Query NED for objects within the specified region
         result = Ned.query_region(icrs_coords, radius=radius * u.deg)
@@ -92,6 +83,41 @@ def list_celestial_objects_in_region(ra, dec, radius=0.1):
     except Exception as e:
         print(f"Error querying region: {e}")
 
+# def list_available_celestial_objects(ra, dec, radius = 0.1):
+#     frame = 'icrs'
+
+#     try:
+#         # Determine format and unit for RA/Dec
+#         if isinstance(ra, (float, int)) and isinstance(dec, (float, int)): # Degree format
+#             icrs_coords = SkyCoord(ra, dec, frame=frame, unit='deg') 
+#         elif isinstance(ra, str) and isinstance(dec, str):
+#             if "h" in ra or "d" in dec: # Sexagesimal format
+#                 icrs_coords = SkyCoord(ra, dec, frame=frame) # Format like '00h42m30s' and '+41d12m00s'
+#             else:
+#                 icrs_coords = SkyCoord(ra, dec, frame=frame, unit=(u.hourangle, u.deg)) # Format like '00 42 30' and '+41 12 00', specify units explicitly
+#         elif isinstance(ra, str) and dec is None:
+#             icrs_coords = SkyCoord(ra, frame=frame, unit=(u.hourangle, u.deg)) # Single string input, e.g., '00:42.5 +41:12'
+#         else:
+#             raise ValueError("Unsupported RA/Dec format. Please provide RA and Dec in a supported format.")
+        
+#         # Query NED for objects within the specified region
+#         result = Ned.query_region(icrs_coords, radius=radius * u.deg)
+        
+#         # Check if results are found
+#         if result is not None and len(result) > 0:
+#             # Display the column names to understand the structure
+#             print("Available columns:", result.colnames)
+            
+#             # Loop through the results and print relevant details
+#             for obj in result:
+#                 # Use available columns from result
+#                 name = obj.get('Object Name', 'Unknown')
+#                 print(f"Name: {name}")
+#         else:
+#             print("No celestial objects found in the specified region.")
+#     except Exception as e:
+#         print(f"Error querying region: {e}")
+
 def convert_altaz_to_radec(alt, az):
     now = Time.now()  # Get current time
     latitude, longitude, elevation = get_location_and_elevation()
@@ -107,7 +133,7 @@ def convert_altaz_to_radec(alt, az):
 
     return icrs_coords.ra.hourangle, icrs_coords.dec.degree
 
-def convert_radec_to_altaz(ra, dec, frame='icrs'):
+def convert_radec_to_degrees(ra, dec=None, frame='icrs'):
     # Determine format and unit for RA/Dec
     if isinstance(ra, (float, int)) and isinstance(dec, (float, int)): # Degree format
         icrs_coords = SkyCoord(ra, dec, frame=frame, unit='deg') 
@@ -120,6 +146,11 @@ def convert_radec_to_altaz(ra, dec, frame='icrs'):
         icrs_coords = SkyCoord(ra, frame=frame, unit=(u.hourangle, u.deg)) # Single string input, e.g., '00:42.5 +41:12'
     else:
         raise ValueError("Unsupported RA/Dec format. Please provide RA and Dec in a supported format.")
+    
+    return icrs_coords.ra.degree, icrs_coords.dec.degree
+
+def convert_radec_to_altaz(ra, dec):
+    ra_deg, dec_deg = convert_radec_to_degrees(ra, dec)
 
     now = Time.now()  # Get current time
     latitude, longitude, elevation = get_location_and_elevation()
@@ -128,6 +159,7 @@ def convert_radec_to_altaz(ra, dec, frame='icrs'):
         raise ValueError("Could not retrieve location or elevation data.")
 
     observer_location = EarthLocation(lat=latitude * u.deg, lon=longitude * u.deg, height=elevation * u.m)  # Define the observer's location
+    icrs_coords = SkyCoord(ra_deg, dec_deg, frame='icrs', unit='deg')
 
     altaz_frame = AltAz(obstime=now, location=observer_location)  # Define the AltAz frame
     altaz_coords = icrs_coords.transform_to(altaz_frame)  # Convert to AltAz
@@ -145,7 +177,7 @@ def __main__():
     print(f"radec converted to alt and az:  ALT: {alt_converted}  AZ: {az_converted}")
     print(f"Altaz converted to ra and dec:  RA: {ra_converted}  DEC: {dec_converted}")
     print("\n")
-    list_celestial_objects_in_region(ra, dec, radius = 0.1)
+    list_available_celestial_objects(ra, dec)
 
 if __name__ == '__main__':
     __main__()
