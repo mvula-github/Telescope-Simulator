@@ -1,4 +1,4 @@
-import Calculations as C, File_Handling as FH, Telescope_Movement as TM
+import Calculations as C, File_Handling as FH, Telescope_Movement as TM, getpass
 
 USER, PASSWORD = 'f', 'f'
 
@@ -151,7 +151,7 @@ def __main__():
     # Check login details
     while b_flag == False:
         user = input("Enter your username: ")
-        password = input("Enter your password: ")
+        password = getpass.getpass("Enter your password: ") # Hiddes password, does not echo the password as the user types.
 
         if (USER == user) & (PASSWORD == password):
             b_flag = True
