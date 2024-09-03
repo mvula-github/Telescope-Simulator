@@ -1,4 +1,5 @@
-import Calculations as C, File_Handling as FH, Telescope_Movement as TM, System_Config as SC, System_Checks as SCh
+import Calculations as C, File_Handling as FH, Telescope_Movement as TM, System_Checks as SCh
+from System_Config import config
 import getpass, os
 
 # File where credentials are stored
@@ -14,9 +15,9 @@ COMMAND_DESCRIPTIONS = {
     "Point To RaDec": "Point telescope to specific Ra (right ascension) & Dec (declination) values.",
     "Tracking": "Initiate tracking process to track a celestial object.",
     "Rest Mode": "Move telescope to rest mode.",
-    "Back": "Go back to the previous menu.",
     "Change Telescope Location": "Change physical location values of telescope (Latitude, Longitude, Elevation).",
-    "Change Data Location": "Change the location where the telescope frequency data is stored.",
+    "Change Data Store Location": "Change the location where the telescope frequency data is stored.",
+    "Change Telescope Limits": "Change upper and lower altitude and azimuth degree limits of telescope limits.",
     "Convert Alt & Az to Ra & Dec": "Convert Alt (altitude) & Az (azimuth) degrees to Ra (right ascension) & Dec (declination) values.",
     "Convert Ra & Dec to Alt & Az": "Convert Ra (right ascension) & Dec (declination) values to Alt (altitude) & Az (azimuth) degrees.",
     "Display location": "Display location using IP, GPS, and the last stored location in the configuration file.",
@@ -28,10 +29,10 @@ COMMAND_DESCRIPTIONS = {
 
 MENUS = {
     0: ["1. Telescope Control", "2. Configure Settings", "3. Coordinate System", "4. Display Data", "5. Exit"],
-    1: ["1. Point To AltAz", "2. Point To RaDec", "3. Tracking", "4. Rest Mode", "5. Back"],
-    2: ["1. Change Telescope Location", "2. Change Data Location", "3. Back"],
-    3: ["1. Convert Alt & Az to Ra & Dec", "2. Convert Ra & Dec to Alt & Az", "3. Back"],
-    4: ["1. Display Location", "2. Display Telescope Logs", "3. Display All Commands & Descriptions", "4. Display Available Celestial Objects", "5. Check Internet Connection", "6. Back"]
+    1: ["1. Point To AltAz", "2. Point To RaDec", "3. Tracking", "4. Rest Mode"],
+    2: ["1. Change Telescope Location", "2. Change Data Store Location", "3. Change Telescope Limits"],
+    3: ["1. Convert Alt & Az to Ra & Dec", "2. Convert Ra & Dec to Alt & Az"],
+    4: ["1. Display Location", "2. Display Telescope Logs", "3. Display All Commands & Descriptions", "4. Display Available Celestial Objects", "5. Check Internet Connection"]
 }
 
 def load_credentials():
@@ -68,52 +69,80 @@ def handle_menu_choice(menu_num, choice):
     if menu_num == 0:
         display_menu(choice)
         handle_menu_choice(choice, get_menu_choice())
-    elif menu_num == 1:
-        if choice == 1:
+    elif menu_num == 1: # Telescope Control Menu
+        if choice == 1: # Point To AltAz
             alt = float(input("Enter altitude degrees: "))
             az = float(input("Enter azimuth degrees: "))
             # Add functionality to move telescope here
-        elif choice == 2:
+        elif choice == 2: # Point To RaDec
             ra = input("Enter Ra value: ")
             dec = input("Enter dec value: ")
             alt, az = C.convert_radec_to_altaz(ra, dec)
             # Add functionality to move telescope here
-        elif choice == 3:
+        elif choice == 3: # Tracking
             code = input("\nEnter the code of the celestial object that you would like to track: ")
             TM.track_celestial_object(code)
-        elif choice == 4:
+        elif choice == 4: # Rest Mode
             # Add functionality to make telescope enter rest mode
             pass
-    elif menu_num == 2:
-        # Handle configure settings options
-        pass
-    elif menu_num == 3:
-        if choice == 1:
+    elif menu_num == 2: # Configure Settings Menu
+        if choice == 1: # Change Telescope Location
+            print("(Latitude, Longitude, Elevation)")
+            print(f"IP: {C.get_location_and_elevation('ip')}")
+            print(f"Last Saved: {C.get_location_and_elevation('stored')}")
+            print("\n")
+
+            latitude = float(input("Enter latitude: "))
+            longitude = float(input("Enter longitude: "))
+            elevation = float(input("Enter elevation: "))
+
+            config.update('latitude', latitude)
+            config.update('longitude', longitude)
+            config.update('elevation', elevation)
+        elif choice == 2: # Change Data Store Location
+            # ADD FUNCTIONALITY TO CHANGE LOCATION WHERE DATA IS STORED
+            pass
+        elif choice == 3: # Change Telescope Limits
+            print("Altitude limits:", config.get('altitude_limits'))
+            print("Azimuth limits:", config.get('azimuth_limits'))
+
+            lower_alt = float(input("Enter lower bound for altitude limits: "))
+            upper_alt = float(input("Enter upper bound for altitude limits: "))
+            lower_az = float(input("Enter lower bound for azimuth limits: "))
+            upper_az = float(input("Enter upper bound for azimuth limits: "))
+
+            alt_limits = [lower_alt, upper_alt]
+            az_limits = [lower_az, upper_az]
+
+            config.update('altitude_limits', alt_limits)
+            config.update('azimuth_limits', az_limits)
+    elif menu_num == 3: # Coordinate System
+        if choice == 1: # Convert Alt & Az to Ra & Dec
             alt = float(input("Enter altitude degrees: "))
             az = float(input("Enter azimuth degrees: "))
             ra, dec = C.convert_altaz_to_radec(alt, az)
             print(f"AltAz converted to RaDec: RA: {ra} DEC: {dec}")
-        elif choice == 2:
+        elif choice == 2: # Convert Ra & Dec to Alt & Az
             ra = input("Enter Ra value: ")
             dec = input("Enter dec value: ")
             alt, az = C.convert_radec_to_altaz(ra, dec)
             print(f"RaDec converted to AltAz: ALT: {alt} AZ: {az}")
-    elif menu_num == 4:
-        if choice == 1:
+    elif menu_num == 4: # Display Data
+        if choice == 1: # Display Location
             print("(Latitude, Longitude, Elevation)")
             print(f"IP: {C.get_location_and_elevation('ip')}")
             print(f"Last Saved: {C.get_location_and_elevation('stored')}")
-        elif choice == 2:
+        elif choice == 2: # Display Telescope Logs
             FH.display_logs()
-        elif choice == 3:
+        elif choice == 3: # Display All Commands & Descriptions
             print("\nAvailable commands: \n")
             for command, description in COMMAND_DESCRIPTIONS.items():
                 print(f"{command}: {description}")
-        elif choice == 4:
+        elif choice == 4: # Display Available Celestial Objects
             ra = input("Enter Ra degree: ")
             dec = input("Enter dec degree: ")
             C.list_available_celestial_objects(ra, dec, radius=0.1)
-        elif choice == 5:
+        elif choice == 5: # Check Internet Connection
             print(SCh.check_internet_connection())
 
 def main():

@@ -6,7 +6,7 @@ ALTITUDE_LIMITS = config.get('altitude_limits')
 AZIMUTH_LIMITS = config.get('azimuth_limits')
 
 # Configuration variables
-PING_RA_DEC = config.get('time_to_wait') # Ping ra and dec values every # seconds
+PING_RA_DEC = config.get('celestial_ping_time') # Ping ra and dec values every # seconds
 
 def check_limits(alt, az):
     if ALTITUDE_LIMITS[0] <= alt <= ALTITUDE_LIMITS[1] and AZIMUTH_LIMITS[0] <= az <= AZIMUTH_LIMITS[1]:
