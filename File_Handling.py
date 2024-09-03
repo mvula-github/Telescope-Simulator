@@ -36,19 +36,35 @@ def is_valid_directory(dir):
         else:
             return False, f"The directory '{dir}' does not exist."
 
-    return True, None  # No error message since the directory is valid
+    return True, None  
 
-def write_log(user, command, description):
+def write_log(user, command, status, description):
     record = ""
     time = datetime.now().strftime("%H:%M:%S")
     date = datetime.now().date()
 
     record = str(date) + "\t\t" + time + "\t\t" + user + "\t\t" + command + "\t\t" + description
 
-    append_to_file(os.path.join(get_script_path(), "Resources", "Logs.txt"), record)
+    if status == True:
+        append_to_file(os.path.join(get_script_path(), "Resources", "Logs.txt"), record)
+    else:
+        append_to_file(os.path.join(get_script_path(), "Resources", "Errors.txt"), record)
 
 def display_logs():
+    print("Logs: \n")
     file_path = os.path.join(get_script_path(), 'Resources', 'Logs.txt')
+
+    # Open the file in read mode
+    with open(file_path, 'r') as file:
+        # Read the contents of the file
+        contents = file.read()
+
+    # Display the contents in the terminal
+    print(contents)
+    print("\n")
+
+    print("Errors: \n")
+    file_path = os.path.join(get_script_path(), 'Resources', 'Errors.txt')
 
     # Open the file in read mode
     with open(file_path, 'r') as file:

@@ -1,11 +1,12 @@
-import time, keyboard, Calculations as C
+import time, keyboard, Calculations as C, System_Config
+from System_Config import config
 
 # Telescope limit degrees
-ALTITUDE_LIMITS = (-75, 75) 
-AZIMUTH_LIMITS = (-120, 120)
+ALTITUDE_LIMITS = config.get('altitude_limits')
+AZIMUTH_LIMITS = config.get('azimuth_limits')
 
 # Configuration variables
-PING_RA_DEC = 3 # Ping ra and dec values every # seconds
+PING_RA_DEC = config.get('time_to_wait') # Ping ra and dec values every # seconds
 
 def check_limits(alt, az):
     if ALTITUDE_LIMITS[0] <= alt <= ALTITUDE_LIMITS[1] and AZIMUTH_LIMITS[0] <= az <= AZIMUTH_LIMITS[1]:

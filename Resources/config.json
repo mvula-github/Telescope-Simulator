@@ -1,0 +1,8 @@
+{
+    "latitude": -26.7167,
+    "longitude": 27.1,
+    "elevation": 1100,
+    "time_to_wait": 3,
+    "altitude_limits": [-75, 75],
+    "azimuth_limits": [-120, 120]
+}
