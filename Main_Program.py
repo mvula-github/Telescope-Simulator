@@ -78,7 +78,6 @@ def handle_menu_choice(menu_num, choice):
             alt, az = C.convert_radec_to_altaz(ra, dec)
             # Add functionality to move telescope here
         elif choice == 3: # Tracking
-            code = input("\nEnter the code of the celestial object that you would like to track: ")
             celestial_code = get_valid_celestial_code()
             TM.track_celestial_object(celestial_code)
         elif choice == 4: # Rest Mode
@@ -147,7 +146,6 @@ def get_valid_alt_az():
         try:
             alt = float(input("Enter Alt (Altitude) degrees (-90 to 90): ")) # Input alt
             az = float(input("Enter Az (Azimuth) degrees (0 to 360): ")) # Input az
-
             alt_az_input_validation(alt, az) # Validation for alt and az
             print("Valid Alt/Az input!") # For debuging
             return alt, az  # Return the validated values
@@ -160,13 +158,11 @@ def alt_az_input_validation(alt, az):
         raise ValueError("Alt (Altitude) must be a number")
     if not (-90 <= alt <= 90):
         raise ValueError("Alt (Altitude) must be between -90 and 90 degrees")
-
     # az validation
     if not isinstance(az, (float, int)):
         raise ValueError("Az (Azimuth) must be a number")
     if not (0 <= alt <= 360):
         raise ValueError("Az (Azimuth) must be between 0 and 360 degrees")
-
     return True # If user input passes validation
 
 def get_valid_ra_dec():
@@ -174,7 +170,6 @@ def get_valid_ra_dec():
         try:
             ra = input("Enter RA (Right Ascension) value (e.g., '00h42m30s'): ") # Input ra
             dec = input("Enter Dec (Declination) value (e.g., '+41d12m00s'): ") # Input dec
-
             ra_dec_input_validation(ra, dec) # Validation for ra and dec
             print("Valid RA/Dec input!") # For debuging
             return ra, dec  # Return the validated values
@@ -185,15 +180,12 @@ def ra_dec_input_validation(ra, dec):
     # Define regex patterns for ra and dec in the specific format
     ra_pattern = r"^\d{1,2}h\d{1,2}m\d{1,2}(\.\d+)?s$"
     dec_pattern = r"^[+-]?\d{1,2}d\d{1,2}m\d{1,2}(\.\d+)?s$"
-
     # ra validate
     if not re.match(ra_pattern, ra):
         raise ValueError("RA (Right Ascension) must be in the format 'hhmmss', e.g., '00h42m30s'.")
-
     # dec validate
     if not re.match(dec_pattern, dec):
         raise ValueError("Dec (Declination) must be in the format '+/-ddmmss', e.g., '+41d12m00s'.")
-
     return True  # If user input passes validation
 
 def get_valid_celestial_code():
