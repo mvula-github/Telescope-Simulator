@@ -1,4 +1,4 @@
-import Calculations as C, File_Handling as FH, Telescope_Movement as TM, System_Checks as SCh
+import Calculations as C, File_Handling as FH, Telescope_Movement as TM, System_Checks as SCh, re
 from System_Config import config
 import getpass, os
 
@@ -71,17 +71,15 @@ def handle_menu_choice(menu_num, choice):
         handle_menu_choice(choice, get_menu_choice())
     elif menu_num == 1: # Telescope Control Menu
         if choice == 1: # Point To AltAz
-            alt = float(input("Enter altitude degrees: "))
-            az = float(input("Enter azimuth degrees: "))
+            alt, az = get_valid_alt_az()
             # Add functionality to move telescope here
         elif choice == 2: # Point To RaDec
-            ra = input("Enter Ra value: ")
-            dec = input("Enter dec value: ")
+            ra, dec = get_valid_ra_dec()
             alt, az = C.convert_radec_to_altaz(ra, dec)
             # Add functionality to move telescope here
         elif choice == 3: # Tracking
-            code = input("\nEnter the code of the celestial object that you would like to track: ")
-            TM.track_celestial_object(code)
+            celestial_code = get_valid_celestial_code()
+            TM.track_celestial_object(celestial_code)
         elif choice == 4: # Rest Mode
             # Add functionality to make telescope enter rest mode
             pass
@@ -118,13 +116,11 @@ def handle_menu_choice(menu_num, choice):
             config.update('azimuth_limits', az_limits)
     elif menu_num == 3: # Coordinate System
         if choice == 1: # Convert Alt & Az to Ra & Dec
-            alt = float(input("Enter altitude degrees: "))
-            az = float(input("Enter azimuth degrees: "))
+            alt, az = get_valid_alt_az()
             ra, dec = C.convert_altaz_to_radec(alt, az)
             print(f"AltAz converted to RaDec: RA: {ra} DEC: {dec}")
         elif choice == 2: # Convert Ra & Dec to Alt & Az
-            ra = input("Enter Ra value: ")
-            dec = input("Enter dec value: ")
+            ra, dec = get_valid_ra_dec()
             alt, az = C.convert_radec_to_altaz(ra, dec)
             print(f"RaDec converted to AltAz: ALT: {alt} AZ: {az}")
     elif menu_num == 4: # Display Data
@@ -144,6 +140,73 @@ def handle_menu_choice(menu_num, choice):
             C.list_available_celestial_objects(ra, dec, radius=0.1)
         elif choice == 5: # Check Internet Connection
             print(SCh.check_internet_connection())
+
+def get_valid_alt_az():
+    while True:
+        try:
+            alt = float(input("Enter Alt (Altitude) degrees (-90 to 90): ")) # Input alt
+            az = float(input("Enter Az (Azimuth) degrees (0 to 360): ")) # Input az
+            alt_az_input_validation(alt, az) # Validation for alt and az
+            print("Valid Alt/Az input!") # For debuging
+            return alt, az  # Return the validated values
+        except ValueError as e:
+            print(f"Validation error: {e}. Please try again.\n")
+
+def alt_az_input_validation(alt, az):
+    # alt validation
+    if not isinstance(alt, (float, int)):
+        raise ValueError("Alt (Altitude) must be a number")
+    if not (-90 <= alt <= 90):
+        raise ValueError("Alt (Altitude) must be between -90 and 90 degrees")
+    # az validation
+    if not isinstance(az, (float, int)):
+        raise ValueError("Az (Azimuth) must be a number")
+    if not (0 <= alt <= 360):
+        raise ValueError("Az (Azimuth) must be between 0 and 360 degrees")
+    return True # If user input passes validation
+
+def get_valid_ra_dec():
+    while True:
+        try:
+            ra = input("Enter RA (Right Ascension) value (e.g., '00h42m30s'): ") # Input ra
+            dec = input("Enter Dec (Declination) value (e.g., '+41d12m00s'): ") # Input dec
+            ra_dec_input_validation(ra, dec) # Validation for ra and dec
+            print("Valid RA/Dec input!") # For debuging
+            return ra, dec  # Return the validated values
+        except ValueError as e:
+            print(f"Validation error: {e}. Please try again.\n")
+
+def ra_dec_input_validation(ra, dec):
+    # Define regex patterns for ra and dec in the specific format
+    ra_pattern = r"^\d{1,2}h\d{1,2}m\d{1,2}(\.\d+)?s$"
+    dec_pattern = r"^[+-]?\d{1,2}d\d{1,2}m\d{1,2}(\.\d+)?s$"
+    # ra validate
+    if not re.match(ra_pattern, ra):
+        raise ValueError("RA (Right Ascension) must be in the format 'hhmmss', e.g., '00h42m30s'.")
+    # dec validate
+    if not re.match(dec_pattern, dec):
+        raise ValueError("Dec (Declination) must be in the format '+/-ddmmss', e.g., '+41d12m00s'.")
+    return True  # If user input passes validation
+
+def get_valid_celestial_code():
+    while True:
+        try:
+            code = input("\nEnter the code of the celestial object that you would like to track: ")
+            celestial_code_input_validation(code) # Validation for celestial_code
+            print("Valid code input!") # For debuging
+            return code  # Return the validated code
+        except ValueError as e:
+            print(f"Validation error: {e}. Please try again.\n")
+
+def celestial_code_input_validation(code):
+    # Check if the code is alphanumeric and not empty
+    if not code.isalnum():
+        raise ValueError("The code must be alphanumeric.")
+    # Check the length of the code
+    if len(code) < 3:
+        raise ValueError("The code must be at least 3 characters long.")
+
+    return True  # If user input passes validation
 
 def main():
     while not authenticate():
