@@ -1,1 +1,5 @@
 Date        Time        User        Command     Error Message
+2024-09-10		21:03:54		portia		Login		Failed login attempt
+2024-09-10		21:05:29				Login		Failed login attempt
+2024-09-10		21:06:36				Login		Failed login attempt
+2024-09-10		21:08:30		pp		Login		Failed login attempt

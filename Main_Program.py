@@ -46,11 +46,13 @@ def authenticate():
     username = input("Enter username: ")
     password = getpass.getpass("Enter password: ")
     if username == stored_user and password == stored_password:
+        FH.write_log(username, "Login", True, "Login successful")
         print("Access granted.\n")
-        return True
+        return username
     else:
-        return False
-
+        FH.write_log(username,"Login", False, "Failed login attempt")
+        return None
+ 
 def get_menu_choice(prompt="\nEnter your choice: "):
     while True:
         try:
@@ -65,10 +67,10 @@ def display_menu(menu_num):
     for option in MENUS.get(menu_num, []):
         print(option)
 
-def handle_menu_choice(menu_num, choice):
+def handle_menu_choice(user, menu_num, choice):
     if menu_num == 0:
         display_menu(choice)
-        handle_menu_choice(choice, get_menu_choice())
+        handle_menu_choice(user,choice, get_menu_choice())
     elif menu_num == 1: # Telescope Control Menu
         if choice == 1: # Point To AltAz
             alt = float(input("Enter altitude degrees: "))
@@ -82,6 +84,9 @@ def handle_menu_choice(menu_num, choice):
         elif choice == 3: # Tracking
             code = input("\nEnter the code of the celestial object that you would like to track: ")
             TM.track_celestial_object(code)
+            FH.write_log(user, command, True, f"Tracking started for object code: {code}")
+            # When tracking ends
+            FH.write_log(user, command, True, f"Tracking ended for object code: {code}")
         elif choice == 4: # Rest Mode
             # Add functionality to make telescope enter rest mode
             pass
@@ -99,6 +104,7 @@ def handle_menu_choice(menu_num, choice):
             config.update('latitude', latitude)
             config.update('longitude', longitude)
             config.update('elevation', elevation)
+            FH.write_log(user, "Configurations changed", True, f"Telescope location changed to Lat: {latitude}, Lon: {longitude}, Elevation: {elevation}")
         elif choice == 2: # Change Data Store Location
             # ADD FUNCTIONALITY TO CHANGE LOCATION WHERE DATA IS STORED
             pass
@@ -116,6 +122,8 @@ def handle_menu_choice(menu_num, choice):
 
             config.update('altitude_limits', alt_limits)
             config.update('azimuth_limits', az_limits)
+            FH.write_log(user, "Configurations changed", True, f"Telescope limits updated: Altitude {lower_alt}-{upper_alt}, Azimuth {lower_az}-{upper_az}")
+
     elif menu_num == 3: # Coordinate System
         if choice == 1: # Convert Alt & Az to Ra & Dec
             alt = float(input("Enter altitude degrees: "))
@@ -154,7 +162,7 @@ def main():
         choice = get_menu_choice()
         if choice == 5:  # Exit
             break
-        handle_menu_choice(0, choice)
+        handle_menu_choice("admin", 0, choice)
 
 if __name__ == '__main__':
     main()
