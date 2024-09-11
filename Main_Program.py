@@ -70,7 +70,7 @@ def display_menu(menu_num):
 def handle_menu_choice(user, menu_num, choice):
     if menu_num == 0:
         display_menu(choice)
-        handle_menu_choice(user,choice, get_menu_choice())
+        handle_menu_choice(user, choice, get_menu_choice())
     elif menu_num == 1: # Telescope Control Menu
         if choice == 1: # Point To AltAz
             alt = float(input("Enter altitude degrees: "))
@@ -83,12 +83,17 @@ def handle_menu_choice(user, menu_num, choice):
             # Add functionality to move telescope here
         elif choice == 3: # Tracking
             code = input("\nEnter the code of the celestial object that you would like to track: ")
-            TM.track_celestial_object(code)
-            FH.write_log(user, command, True, f"Tracking started for object code: {code}")
-            # When tracking ends
-            FH.write_log(user, command, True, f"Tracking ended for object code: {code}")
+            
+            try:
+                FH.write_log(user, "Tracking_start", True, f"Tracking started for object code: {code}")
+                TM.track_celestial_object(code)
+                FH.write_log(user, "Tracking_end", True, f"Tracking ended for object code: {code}")
+            except Exception as e:
+                print(f"Failed to track object {code}: {e}")
+                FH.write_log(user, "Tracking_error", False, f"Failed to track object {code}: {e}")
         elif choice == 4: # Rest Mode
             # Add functionality to make telescope enter rest mode
+            #FH.write_log(user, "Rest_mode", True, "Rest mode entered")
             pass
     elif menu_num == 2: # Configure Settings Menu
         if choice == 1: # Change Telescope Location
@@ -97,32 +102,43 @@ def handle_menu_choice(user, menu_num, choice):
             print(f"Last Saved: {C.get_location_and_elevation('stored')}")
             print("\n")
 
-            latitude = float(input("Enter latitude: "))
-            longitude = float(input("Enter longitude: "))
-            elevation = float(input("Enter elevation: "))
+            try:
+                latitude = float(input("Enter latitude: "))
+                longitude = float(input("Enter longitude: "))
+                elevation = float(input("Enter elevation: "))
 
-            config.update('latitude', latitude)
-            config.update('longitude', longitude)
-            config.update('elevation', elevation)
-            FH.write_log(user, "Configurations changed", True, f"Telescope location changed to Lat: {latitude}, Lon: {longitude}, Elevation: {elevation}")
+                # Validate input (check if latitude and longitude are within valid ranges)
+
+                config.update('latitude', latitude)
+                config.update('longitude', longitude)
+                config.update('elevation', elevation)
+
+                FH.write_log(user, "Configurations changed", True, f"Telescope location changed to Lat: {latitude}, Lon: {longitude}, Elevation: {elevation}")
+            except ValueError as e:
+                FH.write_log(user, "Configurations changed", False, f"Invalid input: {e}")
         elif choice == 2: # Change Data Store Location
             # ADD FUNCTIONALITY TO CHANGE LOCATION WHERE DATA IS STORED
             pass
         elif choice == 3: # Change Telescope Limits
             print("Altitude limits:", config.get('altitude_limits'))
             print("Azimuth limits:", config.get('azimuth_limits'))
+            try:
+                lower_alt = float(input("Enter lower bound for altitude limits: "))
+                upper_alt = float(input("Enter upper bound for altitude limits: "))
+                lower_az = float(input("Enter lower bound for azimuth limits: "))
+                upper_az = float(input("Enter upper bound for azimuth limits: "))
+                
+                # Validate input (check if the limits are valid)
 
-            lower_alt = float(input("Enter lower bound for altitude limits: "))
-            upper_alt = float(input("Enter upper bound for altitude limits: "))
-            lower_az = float(input("Enter lower bound for azimuth limits: "))
-            upper_az = float(input("Enter upper bound for azimuth limits: "))
+                alt_limits = [lower_alt, upper_alt]
+                az_limits = [lower_az, upper_az]
 
-            alt_limits = [lower_alt, upper_alt]
-            az_limits = [lower_az, upper_az]
+                config.update('altitude_limits', alt_limits)
+                config.update('azimuth_limits', az_limits)
 
-            config.update('altitude_limits', alt_limits)
-            config.update('azimuth_limits', az_limits)
-            FH.write_log(user, "Configurations changed", True, f"Telescope limits updated: Altitude {lower_alt}-{upper_alt}, Azimuth {lower_az}-{upper_az}")
+                FH.write_log(user, "Configurations changed", True, f"Telescope limits updated: Altitude {lower_alt}-{upper_alt}, Azimuth {lower_az}-{upper_az}")
+            except ValueError as e:
+                FH.write_log(user, "Configurations changed", False, f"Invalid input: {e}")
 
     elif menu_num == 3: # Coordinate System
         if choice == 1: # Convert Alt & Az to Ra & Dec

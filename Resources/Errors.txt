@@ -3,3 +3,11 @@ Date        Time        User        Command     Error Message
 2024-09-10		21:05:29				Login		Failed login attempt
 2024-09-10		21:06:36				Login		Failed login attempt
 2024-09-10		21:08:30		pp		Login		Failed login attempt
+2024-09-11		19:47:57		admin		Configurations changed		Invalid input: Invalid latitude. Must be between -90 and 90.
+2024-09-11		19:50:50		admin		Configurations changed		Invalid input: Invalid latitude. Must be between -90 and 90.
+2024-09-11		20:31:22		admin		tracking_error		Error message: Failed to query NED: The remote service returned the following error message.
+ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
+2024-09-11		20:33:54		admin		tracking_error		Error message: Failed to query NED: The remote service returned the following error message.
+ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
+2024-09-11		20:36:16		admin		tracking_error		Failed to track object 34e4: Failed to query NED: The remote service returned the following error message.
+ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
