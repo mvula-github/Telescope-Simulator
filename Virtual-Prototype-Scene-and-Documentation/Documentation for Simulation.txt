@@ -1,0 +1,22 @@
+1. Download CoppeliaSim Edu from their official website (https://www.coppeliarobotics.com/).
+
+1.1 Start it by running the "coppeliaSim.sh" file (in Ubuntu 20.4).
+
+2. Install Python dependencies:
+
+pip install pyzmq cbor2 (If anyone finds that a required dependency for this simulation is not documented here, please add it)
+
+3. In CoppeliaSim Edu, navigate to File -> Open scene...
+
+Open the "Radio Telescope Scene.ttt" file located in the "Virtual-Prototype-Scene-and-Documentation" folder on the GitHub repository.
+
+4. Press the play button in CoppeliaSim Edu.
+
+5. Run and navigate the radio telescope orientation software as you wish and watch as the virtual radio telescope prototype move during celestial observations. You might have to run "sudo su" in the terminal before running the radio telescope orientation software.
+
+EXTRA INFO:
+To setup the communication between Python and CoppeliaSim: https://www.youtube.com/watch?v=SQont-mTnfM&t=588s 
+
+Note: The various files mentioned in the video are under programming > legacyRemoteApi > remoteApiBindings. 
+Also, remoteApi.dll is for Windows and remoteApi.so is for Ubunto 20.4.
+
