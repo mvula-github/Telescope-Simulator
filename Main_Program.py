@@ -72,17 +72,18 @@ def handle_menu_choice(menu_num, choice):
     elif menu_num == 1: # Telescope Control Menu
         if choice == 1: # Point To AltAz
             alt, az = get_valid_alt_az()
-            # Add functionality to move telescope here
+            
+            TM.move_tel(alt, az)
         elif choice == 2: # Point To RaDec
             ra, dec = get_valid_ra_dec()
             alt, az = C.convert_radec_to_altaz(ra, dec)
-            # Add functionality to move telescope here
+            
+            TM.move_tel(alt, az)
         elif choice == 3: # Tracking
             celestial_code = get_valid_celestial_code()
             TM.track_celestial_object(celestial_code)
         elif choice == 4: # Rest Mode
-            # Add functionality to make telescope enter rest mode
-            pass
+            TM.telescope_rest()
     elif menu_num == 2: # Configure Settings Menu
         if choice == 1: # Change Telescope Location
             print("(Latitude, Longitude, Elevation)")
