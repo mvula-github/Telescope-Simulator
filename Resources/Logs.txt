@@ -18,3 +18,8 @@ Date        Time        User        Command     Description
 2024-09-11		20:36:02		admin		Tracking_start		Tracking started for object code: 34e4
 2024-09-11		20:40:37		admin		Login		Login successful
 2024-09-11		20:40:45		admin		Rest_mode		Rest mode entered
+2024-09-15		18:47:38		admin		Login		Login successful
+2024-09-15		18:49:50		admin		Login		Login successful
+2024-09-15		18:51:05		admin		Login		Login successful
+2024-09-15		18:51:23		admin		Tracking		Started tracking celestial object: m84
+2024-09-15		18:51:23		admin		Tracking		Ended tracking celestial object: m84
