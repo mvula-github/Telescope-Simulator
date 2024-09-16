@@ -96,8 +96,11 @@ def handle_menu_choice(menu_num, choice):
                 print(f"Failed to track object {celestial_code}")
                 FH.write_log(user,"Tracking error",False,f"Failed to track object{celestial_code}:{e}")
         elif choice == 4: # Rest Mode
-            TM.telescope_rest()
-            FH.write_log(user, "Rest Mode",True, "Rest mode entered")
+            try:
+               TM.telescope_rest()
+               FH.write_log(user, "Rest Mode",True, "Rest mode entered")
+            except Exception as e:
+               FH.write_log(user, "Rest Mode", False ,f"Failed to enter rest mode:{e}")
     elif menu_num == 2: # Configure Settings Menu
         if choice == 1: # Change Telescope Location
             print("(Latitude, Longitude, Elevation)")
