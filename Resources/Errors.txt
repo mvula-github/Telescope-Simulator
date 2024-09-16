@@ -11,3 +11,5 @@ ERROR: The object name that you have submitted is not currently recognized by th
 ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
 2024-09-11		20:36:16		admin		tracking_error		Failed to track object 34e4: Failed to query NED: The remote service returned the following error message.
 ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
+2024-09-16		17:07:26		admin		Tracking error		Failed to track objectme3:Failed to query NED: The remote service returned the following error message.
+ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.

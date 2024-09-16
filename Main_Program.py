@@ -86,11 +86,15 @@ def handle_menu_choice(menu_num, choice):
             TM.move_tel(alt, az)
             FH.write_log(user, "Telescope Movement",True, f"Moved telescope to RA: {ra}, Dec: {dec}")
         elif choice == 3: # Tracking
-            celestial_code = get_valid_celestial_code()
-            TM.track_celestial_object(celestial_code)
-            FH.write_log(user,"Tracking",True, f"Started tracking celestial object: {celestial_code}")
-            # End tracking
-            FH.write_log(user,"Tracking",True, f"Ended tracking celestial object: {celestial_code}")
+            try:
+               celestial_code = get_valid_celestial_code()
+               TM.track_celestial_object(celestial_code)
+               FH.write_log(user,"Tracking",True, f"Started tracking celestial object: {celestial_code}")
+               # End tracking
+               FH.write_log(user,"Tracking",True, f"Ended tracking celestial object: {celestial_code}")
+            except Exception as e:
+                print(f"Failed to track object {celestial_code}")
+                FH.write_log(user,"Tracking error",False,f"Failed to track object{celestial_code}:{e}")
         elif choice == 4: # Rest Mode
             TM.telescope_rest()
             FH.write_log(user, "Rest Mode",True, "Rest mode entered")
