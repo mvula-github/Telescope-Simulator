@@ -34,3 +34,7 @@ Date        Time        User        Command     Description
 2024-09-16		17:11:32		admin		Login		Login successful
 2024-09-16		17:21:04		admin		Login		Login successful
 2024-09-16		17:27:26		admin		Login		Login successful
+2024-09-16		17:37:10		admin		Login		Login successful
+2024-09-16		18:00:58		admin		Login		Login successful
+2024-09-16		18:01:13		admin		Tracking		Started tracking celestial object: m84
+2024-09-16		18:01:13		admin		Tracking		Ended tracking celestial object: m84

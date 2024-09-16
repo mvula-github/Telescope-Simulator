@@ -100,6 +100,7 @@ def handle_menu_choice(menu_num, choice):
                TM.telescope_rest()
                FH.write_log(user, "Rest Mode",True, "Rest mode entered")
             except Exception as e:
+               print(f"Failed to enter rest mode :{e}")
                FH.write_log(user, "Rest Mode", False ,f"Failed to enter rest mode:{e}")
     elif menu_num == 2: # Configure Settings Menu
         if choice == 1: # Change Telescope Location

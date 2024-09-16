@@ -15,3 +15,4 @@ ERROR: The object name that you have submitted is not currently recognized by th
 ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
 2024-09-16		17:20:51		& C:/Users/porti/AppData/Local/Microsoft/WindowsApps/python3.11.exe c:/Users/porti/OneDrive/Documents/GitHub/Telescope-Simulator/Main_Program.py		Login		Failed login attempt
 2024-09-16		17:27:41		admin		Rest Mode		Failed to enter rest mode:argument 1: TypeError: wrong type
+2024-09-16		17:37:14		admin		Rest Mode		Failed to enter rest mode:argument 1: TypeError: wrong type
