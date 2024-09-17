@@ -1,7 +1,7 @@
 {
-    "latitude": -26.7167,
-    "longitude": 27.1,
-    "elevation": 1101.0,
+    "latitude": -25.0,
+    "longitude": 18000.0,
+    "elevation": 3400.0,
     "celestial_ping_time": 3,
     "altitude_limits": [
         -90.0,

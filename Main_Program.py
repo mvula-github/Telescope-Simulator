@@ -1,4 +1,4 @@
-import Calculations as C, File_Handling as FH, Telescope_Movement as TM, System_Checks as SCh, re
+import Calculations as C, File_Handling as FH, Telescope_Movement as TM, System_Checks as SCh,re
 from System_Config import config
 import getpass, os
 
@@ -46,9 +46,11 @@ def authenticate():
     username = input("Enter username: ")
     password = getpass.getpass("Enter password: ")
     if username == stored_user and password == stored_password:
+        FH.write_log(username, "Login", True, "Login successful")
         print("Access granted.\n")
         return True
     else:
+        FH.write_log(username, "Login", False, "Failed login attempt")
         return False
 
 def get_menu_choice(prompt="\nEnter your choice: "):
@@ -66,6 +68,7 @@ def display_menu(menu_num):
         print(option)
 
 def handle_menu_choice(menu_num, choice):
+    user = "admin"
     if menu_num == 0:
         display_menu(choice)
         handle_menu_choice(choice, get_menu_choice())
@@ -75,15 +78,19 @@ def handle_menu_choice(menu_num, choice):
             
             TM.move_tel(alt, az)
         elif choice == 2: # Point To RaDec
-            ra, dec = get_valid_ra_dec()
+            ra = input("Enter Ra value: ")
+            dec = input("Enter dec value: ")
             alt, az = C.convert_radec_to_altaz(ra, dec)
             
             TM.move_tel(alt, az)
         elif choice == 3: # Tracking
-            celestial_code = get_valid_celestial_code()
-            TM.track_celestial_object(celestial_code)
+               celestial_code = get_valid_celestial_code()
+
+               TM.track_celestial_object(celestial_code)
+
         elif choice == 4: # Rest Mode
-            TM.telescope_rest()
+               TM.telescope_rest()
+
     elif menu_num == 2: # Configure Settings Menu
         if choice == 1: # Change Telescope Location
             print("(Latitude, Longitude, Elevation)")
@@ -98,6 +105,9 @@ def handle_menu_choice(menu_num, choice):
             config.update('latitude', latitude)
             config.update('longitude', longitude)
             config.update('elevation', elevation)
+
+            FH.write_log(user, "Change Telescope Location",True, f"Changed location to Lat: {latitude}, Long: {longitude}, Elevation: {elevation}")
+
         elif choice == 2: # Change Data Store Location
             # ADD FUNCTIONALITY TO CHANGE LOCATION WHERE DATA IS STORED
             pass
@@ -109,19 +119,26 @@ def handle_menu_choice(menu_num, choice):
             upper_alt = float(input("Enter upper bound for altitude limits: "))
             lower_az = float(input("Enter lower bound for azimuth limits: "))
             upper_az = float(input("Enter upper bound for azimuth limits: "))
+                
+            # Validate input (check if the limits are valid)
 
             alt_limits = [lower_alt, upper_alt]
             az_limits = [lower_az, upper_az]
 
             config.update('altitude_limits', alt_limits)
             config.update('azimuth_limits', az_limits)
+
+            FH.write_log(user, "Configurations changed", True, f"Telescope limits updated: Altitude {lower_alt}-{upper_alt}, Azimuth {lower_az}-{upper_az}")
+
     elif menu_num == 3: # Coordinate System
         if choice == 1: # Convert Alt & Az to Ra & Dec
-            alt, az = get_valid_alt_az()
+            alt = float(input("Enter altitude degrees: "))
+            az = float(input("Enter azimuth degrees: "))
             ra, dec = C.convert_altaz_to_radec(alt, az)
             print(f"AltAz converted to RaDec: RA: {ra} DEC: {dec}")
         elif choice == 2: # Convert Ra & Dec to Alt & Az
-            ra, dec = get_valid_ra_dec()
+            ra = input("Enter Ra value: ")
+            dec = input("Enter dec value: ")
             alt, az = C.convert_radec_to_altaz(ra, dec)
             print(f"RaDec converted to AltAz: ALT: {alt} AZ: {az}")
     elif menu_num == 4: # Display Data
@@ -141,6 +158,7 @@ def handle_menu_choice(menu_num, choice):
             C.list_available_celestial_objects(ra, dec, radius=0.1)
         elif choice == 5: # Check Internet Connection
             print(SCh.check_internet_connection())
+ 
 
 def get_valid_alt_az():
     while True:
@@ -199,6 +217,7 @@ def get_valid_celestial_code():
         except ValueError as e:
             print(f"Validation error: {e}. Please try again.\n")
 
+
 def celestial_code_input_validation(code):
     # Check if the code is alphanumeric and not empty
     if not code.isalnum():
@@ -218,7 +237,7 @@ def main():
         choice = get_menu_choice()
         if choice == 5:  # Exit
             break
-        handle_menu_choice(0, choice)
+        handle_menu_choice( 0, choice)
 
 if __name__ == '__main__':
     main()
