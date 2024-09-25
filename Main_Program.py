@@ -76,13 +76,19 @@ def handle_menu_choice(menu_num, choice):
         if choice == 1: # Point To AltAz
             alt, az = get_valid_alt_az()
             
-            TM.move_tel(alt, az)
+            # Move telescope
+            if TM.test_con(): # If test_con() returns True
+                TM.move_tel(alt, az)
+
         elif choice == 2: # Point To RaDec
             ra = input("Enter Ra value: ")
             dec = input("Enter dec value: ")
             alt, az = C.convert_radec_to_altaz(ra, dec)
             
-            TM.move_tel(alt, az)
+            # Move telescope
+            if TM.test_con(): # If test_con() returns True
+                TM.move_tel(alt, az)
+                
         elif choice == 3: # Tracking
                celestial_code = get_valid_celestial_code()
 
