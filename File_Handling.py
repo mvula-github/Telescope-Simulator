@@ -78,7 +78,7 @@ def append_to_file(file_path, content): # content - String variable
     try:
         with open(file_path, "a") as file: # Open the file in append mode ('a'). This will append to existing content.
             file.write("\n" + content)
-        print("Successfully written to file:", file_path) 
+        #print("Successfully written to file:", file_path) 
 
     except FileNotFoundError: # Handles the case where the file path is incorrect or inaccessible
         print("Failed to load file:", file_path) 

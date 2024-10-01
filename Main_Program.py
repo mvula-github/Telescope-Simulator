@@ -90,12 +90,12 @@ def handle_menu_choice(menu_num, choice):
                 TM.move_tel(alt, az)
                 
         elif choice == 3: # Tracking
-               celestial_code = get_valid_celestial_code()
+            celestial_code = get_valid_celestial_code()
 
-               TM.track_celestial_object(celestial_code)
+            TM.track_celestial_object(celestial_code)
 
         elif choice == 4: # Rest Mode
-               TM.telescope_rest()
+            TM.telescope_rest()
 
     elif menu_num == 2: # Configure Settings Menu
         if choice == 1: # Change Telescope Location
@@ -164,7 +164,6 @@ def handle_menu_choice(menu_num, choice):
             C.list_available_celestial_objects(ra, dec, radius=0.1)
         elif choice == 5: # Check Internet Connection
             print(SCh.check_internet_connection())
- 
 
 def get_valid_alt_az():
     while True:
