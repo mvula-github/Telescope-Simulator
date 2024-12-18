@@ -31,8 +31,9 @@ The program can convert altitude and azimuth degrees to right ascension (RA) and
 
 ### Python Dependencies
 To set up the environment, install the required Python dependencies:
-```bash
+
 pip install pyzmq cbor2
+
 ### CoppeliaSim Scene Setup
 1. In CoppeliaSim Edu, navigate to **File → Open scene...**.
 2. Open the `Radio Telescope Scene.ttt` file located in the `Virtual-Prototype-Scene-and-Documentation` folder of the GitHub repository.
