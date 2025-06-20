@@ -1,96 +1,93 @@
-import os, sys, re
+import os
+import re
 from datetime import datetime
 
 def get_script_path():
-    return os.path.dirname(os.path.realpath(__file__))
+    """Returns the directory path of the current script."""
+    return os.path.dirname(os.path.abspath(__file__))
 
 def file_exists(file_path):
+    """Checks if a file exists and is a regular file."""
     try:
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return True, None  # File exists and is regular
+        if os.path.isfile(file_path):
+            return True, None
+        elif os.path.exists(file_path):
+            return False, "Path exists but is not a regular file."
         else:
-            return False, "File does not exist or is not a regular file"  # File doesn't exist or is a directory
+            return False, "File does not exist."
     except OSError as e:
-        # Handle OSError and return the error message
         return False, str(e)
 
-# Test if a directory is valid and exists
-def is_valid_directory(dir):
-    dir = dir.strip() # Input Sanitization (Remove leading and trailing whitespace)
-
-    # Check if path is an empty string
-    if not dir:
+def is_valid_directory(directory):
+    """
+    Validates if the given path is a valid, existing directory.
+    Checks for empty string, path traversal, and invalid characters.
+    """
+    directory = directory.strip()
+    if not directory:
         return False, "Directory path cannot be empty."
-
-    # Path Traversal Pattern Check (Attempts to access parent directories)
-    if re.search(r"(\.\./|\.\.\\)", dir):  # Platform-agnostic
+    if re.search(r"(\.\./|\.\.\\)", directory):
         return False, "Directory path cannot contain traversal patterns (../ or ..\\)."
-
-    # Other Suspicious Patterns
-    if re.search(r"[<>*\|]", dir):
+    if re.search(r"[<>*\|]", directory):
         return False, "Directory path contains invalid characters (<>*|)."
-
-    if not os.path.isdir(dir):
-        if os.path.exists(dir):  # Check if it exists but is not a directory
-            return False, f"The path '{dir}' exists but is not a directory."
+    if not os.path.isdir(directory):
+        if os.path.exists(directory):
+            return False, f"The path '{directory}' exists but is not a directory."
         else:
-            return False, f"The directory '{dir}' does not exist."
-
-    return True, None  
+            return False, f"The directory '{directory}' does not exist."
+    return True, None
 
 def write_log(user, command, status, description):
-    record = ""
-    time = datetime.now().strftime("%H:%M:%S")
-    date = datetime.now().date()
-
-    record = str(date) + "\t\t" + time + "\t\t" + user + "\t\t" + command + "\t\t" + description
-
-    if status == True:
-        append_to_file(os.path.join(get_script_path(), "Resources", "Logs.txt"), record)
-    else:
-        append_to_file(os.path.join(get_script_path(), "Resources", "Errors.txt"), record)
+    """
+    Writes a log entry to Logs.txt or Errors.txt depending on status.
+    """
+    now = datetime.now()
+    record = f"{now.date()}\t{now.strftime('%H:%M:%S')}\t{user}\t{command}\t{description}"
+    log_dir = os.path.join(get_script_path(), "Resources")
+    os.makedirs(log_dir, exist_ok=True)
+    file_name = "Logs.txt" if status else "Errors.txt"
+    append_to_file(os.path.join(log_dir, file_name), record)
 
 def display_logs():
-    print("Logs: \n")
-    file_path = os.path.join(get_script_path(), 'Resources', 'Logs.txt')
+    """
+    Displays the contents of Logs.txt and Errors.txt in the terminal.
+    """
+    log_dir = os.path.join(get_script_path(), 'Resources')
+    logs_path = os.path.join(log_dir, 'Logs.txt')
+    errors_path = os.path.join(log_dir, 'Errors.txt')
 
-    # Open the file in read mode
-    with open(file_path, 'r') as file:
-        # Read the contents of the file
-        contents = file.read()
+    print("Logs:\n")
+    if os.path.exists(logs_path):
+        with open(logs_path, 'r') as file:
+            print(file.read())
+    else:
+        print("No logs found.")
 
-    # Display the contents in the terminal
-    print(contents)
-    print("\n")
+    print("\nErrors:\n")
+    if os.path.exists(errors_path):
+        with open(errors_path, 'r') as file:
+            print(file.read())
+    else:
+        print("No errors found.")
 
-    print("Errors: \n")
-    file_path = os.path.join(get_script_path(), 'Resources', 'Errors.txt')
-
-    # Open the file in read mode
-    with open(file_path, 'r') as file:
-        # Read the contents of the file
-        contents = file.read()
-
-    # Display the contents in the terminal
-    print(contents)
-
-def append_to_file(file_path, content): # content - String variable 
+def append_to_file(file_path, content):
+    """
+    Appends a line of text to the specified file, creating directories if needed.
+    """
     try:
-        with open(file_path, "a") as file: # Open the file in append mode ('a'). This will append to existing content.
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "a", encoding="utf-8") as file:
             file.write("\n" + content)
-        #print("Successfully written to file:", file_path) 
-
-    except FileNotFoundError: # Handles the case where the file path is incorrect or inaccessible
-        print("Failed to load file:", file_path) 
-
-    except PermissionError: # Handles the case where the user doesn't have permission to write to the file
-        print("Permission denied. Cannot write to:", file_path)
-
-    except Exception as e: # A general exception handler for other unexpected errors
+    except FileNotFoundError:
+        print(f"Failed to load file: {file_path}")
+    except PermissionError:
+        print(f"Permission denied. Cannot write to: {file_path}")
+    except Exception as e:
         print(f"An error occurred: {e}")
 
-def __main__():
+def main():
+    # Placeholder for future CLI or test code
     pass
 
 if __name__ == '__main__':
-    __main__()
+    main()
