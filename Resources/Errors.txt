@@ -1,1 +1,10 @@
 Date        Time        User        Command     Error Message
+2025-06-20	09:50:43	admin	Login	Failed login attempt
+2025-06-20	09:51:24	admin	Tracking	Error occurred during tracking: Failed to query NED: The remote service returned the following error message.
+ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
+2025-06-20	09:51:34	admin	Tracking	Error occurred during tracking: Failed to query NED: The remote service returned the following error message.
+ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
+2025-06-20	09:52:50	admin	Tracking	Error occurred during tracking: Both 'ra' and 'dec' must be numeric values (int, float) or strings.
+2025-06-20	09:54:34	admin	Tracking	Error occurred during tracking: Failed to query NED: The remote service returned the following error message.
+ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
+2025-06-20	09:55:06	admin	Tracking	Celestial object out of bounds: Alt: 21.85036122207323, Az: 346.7108270878814.
