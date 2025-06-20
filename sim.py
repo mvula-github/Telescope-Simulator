@@ -5,27 +5,40 @@ import os
 import ctypes as ct
 from simConst import *
 
-#load library
-libsimx = None
-try:
-    file_extension = '.so'
-    if platform.system() =='cli':
-        file_extension = '.dll'
-    elif platform.system() =='Windows':
-        file_extension = '.dll'
-    elif platform.system() == 'Darwin':
-        file_extension = '.dylib'
+# Improved: Robust library loading with clear error reporting and platform detection
+def _get_lib_extension():
+    system = platform.system()
+    if system == 'Windows':
+        return '.dll'
+    elif system == 'Darwin':
+        return '.dylib'
     else:
-        file_extension = '.so'
-    libfullpath = os.path.join(os.path.dirname(__file__), 'remoteApi' + file_extension)
-    libsimx = ct.CDLL(libfullpath)
-except:
-    print ('----------------------------------------------------')
-    print ('The remoteApi library could not be loaded. Make sure')
-    print ('it is located in the same folder as "sim.py", or')
-    print ('appropriately adjust the file "sim.py"')
-    print ('----------------------------------------------------')
-    print ('')
+        return '.so'
+
+def _load_libsimx():
+    lib_name = 'remoteApi' + _get_lib_extension()
+    lib_path = os.path.join(os.path.dirname(__file__), lib_name)
+    if not os.path.exists(lib_path):
+        raise FileNotFoundError(
+            f"The remoteApi library '{lib_name}' could not be found in '{os.path.dirname(__file__)}'."
+        )
+    try:
+        return ct.CDLL(lib_path)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to load remoteApi library '{lib_name}': {e}"
+        )
+
+try:
+    libsimx = _load_libsimx()
+except Exception as e:
+    print('----------------------------------------------------')
+    print('The remoteApi library could not be loaded. Make sure')
+    print('it is located in the same folder as "sim.py", or')
+    print('appropriately adjust the file "sim.py"')
+    print('Error:', e)
+    print('----------------------------------------------------')
+    libsimx = None
 
 #ctypes wrapper prototypes
 c_GetJointPosition          = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.POINTER(ct.c_float), ct.c_int32)(("simxGetJointPosition", libsimx))
