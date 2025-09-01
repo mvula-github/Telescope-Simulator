@@ -147,6 +147,7 @@ def handle_menu_choice(menu_num, choice):
             dec = input("Enter dec value: ")
             alt, az = C.convert_radec_to_altaz(ra, dec)
             print(f"RaDec converted to AltAz: ALT: {alt} AZ: {az}")
+            
     elif menu_num == 4: # Display Data
         if choice == 1: # Display Location
             print("(Latitude, Longitude, Elevation)")

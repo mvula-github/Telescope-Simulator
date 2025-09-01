@@ -6,14 +6,14 @@ import File_Handling as FH
 from System_Config import config
 import sim
 
-# Telescope movement limits
+# Load telescope movement limits from configuration
 ALTITUDE_LIMITS = config.get('altitude_limits')
 AZIMUTH_LIMITS = config.get('azimuth_limits')
 
-# Configuration variables
+# Time interval for updating celestial coordinates
 PING_RA_DEC = config.get('celestial_ping_time')
 
-# Global variable for telescope connection
+# Global variable for telescope connection to CoppeliaSim
 clientID = None
 
 def test_con():
@@ -23,9 +23,11 @@ def test_con():
     """
     global clientID
     try:
+        # Check if connection is not established or lost
         if clientID is None or sim.simxGetConnectionId(clientID) == -1:
             print("Connecting to telescope.")
             sim.simxFinish(-1)  # Close all opened connections
+            # Attempt to connect to CoppeliaSim remote API server
             clientID = sim.simxStart('127.0.0.1', 19999, True, True, 5000, 5)
             if clientID != -1:
                 return True
@@ -43,12 +45,15 @@ def telescope_rest():
     Move the telescope to its rest (default) position.
     """
     try:
+        # Get handles for base and mount joints
         baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
         mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
+        # Start simulation and move joints to rest position (0 degrees)
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, baseJointHandle, 0.0, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, mountJointHandle, 0.0, sim.simx_opmode_oneshot)
         time.sleep(3)
+        # Stop simulation and disconnect
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxFinish(clientID)
         print("Rest mode entered.")
@@ -62,8 +67,10 @@ def move_tel(alt, az):
     Move the telescope to the specified altitude and azimuth.
     """
     try:
+        # Get handles for base and mount joints
         baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
         mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
+        # Start simulation and move joints to target positions (converted to radians)
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, baseJointHandle, math.radians(az), sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, mountJointHandle, math.radians(alt), sim.simx_opmode_oneshot)
@@ -77,6 +84,7 @@ def check_limits(alt, az):
     """
     Check if the given altitude and azimuth are within the telescope's movement limits.
     """
+    # Return True if both altitude and azimuth are within configured limits
     return ALTITUDE_LIMITS[0] <= alt <= ALTITUDE_LIMITS[1] and AZIMUTH_LIMITS[0] <= az <= AZIMUTH_LIMITS[1]
 
 def track_celestial_object(code):
@@ -87,6 +95,7 @@ def track_celestial_object(code):
     try:
         while True:
             start_time = time.time()
+            # Wait for the configured ping interval or until 'q' is pressed
             while time.time() - start_time < PING_RA_DEC:
                 if keyboard.is_pressed('q') or keyboard.is_pressed('Q'):
                     print("Stopping tracking...")
@@ -94,6 +103,7 @@ def track_celestial_object(code):
                     FH.write_log("admin", "Tracking", True, "Stopped tracking celestial object.")
                     return
                 time.sleep(0.1)
+            # Get celestial object details and convert to Alt/Az
             code, name, ra, dec = C.get_celestial_object_details(code)
             alt, az = C.convert_radec_to_altaz(ra, dec)
             if check_limits(alt, az):
@@ -113,6 +123,7 @@ def track_celestial_object(code):
                     telescope_rest()
                 break
     except KeyboardInterrupt:
+        # Handle user interrupt (Ctrl+C)
         FH.write_log("admin", "Tracking", True, "Tracking interrupted by user.")
         if test_con():
             telescope_rest()
@@ -122,6 +133,7 @@ def track_celestial_object(code):
         print(f"Error occurred during tracking: {e}")
 
 def main():
+    # Start tracking the celestial object with code "M31" (Andromeda Galaxy)
     track_celestial_object("M31")
 
 if __name__ == '__main__':

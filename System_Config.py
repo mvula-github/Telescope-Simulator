@@ -1,33 +1,43 @@
 import json
 import os
+import logging
 
+logging.basicConfig(level=logging.INFO)
+import logging
+
+# Path to the configuration file (JSON format)
 CONFIG_FILE = os.path.join("Resources", "config.json")
 
-class Config:
+class config:
     """
     Handles loading, saving, updating, and validating configuration from a JSON file.
+    Provides methods to interact with configuration data for the telescope simulator.
     """
     def __init__(self, config_file=CONFIG_FILE):
+        # Initialize with the config file path and load its data
         self.config_file = config_file
         self._data = self._load_config()
 
     def _load_config(self):
+        # Load configuration data from the JSON file
         try:
             with open(self.config_file, 'r', encoding='utf-8') as file:
                 return json.load(file)
         except FileNotFoundError:
-            print(f"Configuration file not found: {self.config_file}. Using empty config.")
+            logging.error(f"Configuration file not found: {self.config_file}. Using empty config.")
             return {}
         except json.JSONDecodeError as e:
-            print(f"Error decoding JSON configuration: {e}")
+            # If JSON is invalid, use an empty config
+            logging.error(f"Error decoding JSON configuration: {e}")
+            return {}
             return {}
 
     def get(self, key, default=None):
-        """Get a configuration value by key."""
+        """Get a configuration value by key. Returns default if key is missing."""
         return self._data.get(key, default)
 
     def reload(self):
-        """Reload the configuration from the file."""
+        """Reload the configuration from the file (refreshes _data)."""
         self._data = self._load_config()
 
     def update(self, key, value):
@@ -38,11 +48,12 @@ class Config:
     def _save_config(self):
         """Save the current configuration data to the file."""
         try:
+            # Ensure the directory exists before saving
             os.makedirs(os.path.dirname(self.config_file), exist_ok=True)
             with open(self.config_file, 'w', encoding='utf-8') as file:
                 json.dump(self._data, file, indent=4)
-        except IOError as e:
-            print(f"Error saving configuration: {e}")
+        except (IOError, OSError) as e:
+            logging.error(f"Error saving configuration: {e}")
 
     def validate(self):
         """
@@ -55,8 +66,13 @@ class Config:
         ]
         missing_keys = [key for key in required_keys if key not in self._data]
         if missing_keys:
-            print(f"Missing configuration keys: {missing_keys}")
+            logging.error(f"Missing configuration keys: {missing_keys}")
             return False
         return True
+        return True
 
-config = Config()  # Instantiate a single Config object
+# Instantiate a single config object for use throughout the application
+config = config()
+
+# Configure logging for the module (optional: adjust level/format as needed)
+logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')

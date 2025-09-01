@@ -8,3 +8,5 @@ ERROR: The object name that you have submitted is not currently recognized by th
 2025-06-20	09:54:34	admin	Tracking	Error occurred during tracking: Failed to query NED: The remote service returned the following error message.
 ERROR: The object name that you have submitted is not currently recognized by the NED name interpreter.
 2025-06-20	09:55:06	admin	Tracking	Celestial object out of bounds: Alt: 21.85036122207323, Az: 346.7108270878814.
+2025-07-21	12:22:32	admin	Telescope Connection	Failed to connect to telescope.
+2025-08-04	02:55:20	admin	Telescope Connection	Failed to connect to telescope.
