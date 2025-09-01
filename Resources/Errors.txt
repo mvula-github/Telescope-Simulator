@@ -10,3 +10,16 @@ ERROR: The object name that you have submitted is not currently recognized by th
 2025-06-20	09:55:06	admin	Tracking	Celestial object out of bounds: Alt: 21.85036122207323, Az: 346.7108270878814.
 2025-07-21	12:22:32	admin	Telescope Connection	Failed to connect to telescope.
 2025-08-04	02:55:20	admin	Telescope Connection	Failed to connect to telescope.
+2025-09-01	02:00:58		Login	Failed login attempt
+2025-09-01	02:01:00		Login	Failed login attempt
+2025-09-01	02:01:01		Login	Failed login attempt
+2025-09-01	02:02:18	admin	Login	Failed login attempt
+2025-09-01	02:02:26	admin123	Login	Failed login attempt
+2025-09-01	02:02:32	admin	Login	Failed login attempt
+2025-09-01	02:02:39	admin	Login	Failed login attempt
+2025-09-01	02:03:08	admin	Login	Failed login attempt
+2025-09-01	02:07:27	admin	Login	Failed login attempt
+2025-09-01	02:07:35	admin	Login	Failed login attempt
+2025-09-01	02:07:42	mohau	Login	Failed login attempt
+2025-09-01	02:14:19	admin	Login	Failed login attempt
+2025-09-01	02:22:09	admin	Rest Mode	Failed to enter rest mode: argument 1: TypeError: 'NoneType' object cannot be interpreted as an integer
