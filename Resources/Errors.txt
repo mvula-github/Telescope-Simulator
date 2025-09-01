@@ -20,3 +20,4 @@ ERROR: The object name that you have submitted is not currently recognized by th
 2025-09-01	02:07:35	admin	Login	Failed login attempt
 2025-09-01	02:07:42	mohau	Login	Failed login attempt
 2025-09-01	02:14:19	admin	Login	Failed login attempt
+2025-09-01	02:22:09	admin	Rest Mode	Failed to enter rest mode: argument 1: TypeError: 'NoneType' object cannot be interpreted as an integer
