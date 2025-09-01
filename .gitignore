@@ -2,7 +2,7 @@
 .venv/
 
 # Ignore environment variables
-users/.env
+.env
 
 # Python cache files
 __pycache__/
