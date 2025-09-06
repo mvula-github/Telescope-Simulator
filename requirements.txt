@@ -3,3 +3,6 @@ geocoder
 requests
 astroquery
 keyboard
+python-dotenv
+pymongo
+bcrypt
