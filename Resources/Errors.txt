@@ -11,3 +11,4 @@ ERROR: The object name that you have submitted is not currently recognized by th
 2025-09-06	17:47:18	admin	Login	Failed login attempt
 2025-09-06	17:47:26	admin	Login	Failed login attempt
 2025-09-06	17:47:32	admin	Login	Failed login attempt
+2025-09-06	17:50:48	admin	Telescope Connection	Failed to connect to telescope.
