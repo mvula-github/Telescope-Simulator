@@ -40,22 +40,30 @@ def test_con():
 
 def telescope_rest():
     """
-    Move the telescope to its rest (default) position.
+    Move the telescope to its rest (default) position: 
+    Azimuth = 0° (north), Altitude = 90° (vertical/zenith).
+    Keeps the connection alive for further operations.
     """
     try:
         baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
         mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
+        
+        # Start simulation if not already running
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
-        sim.simxSetJointTargetPosition(clientID, baseJointHandle, 0.0, sim.simx_opmode_oneshot)
-        sim.simxSetJointTargetPosition(clientID, mountJointHandle, 0.0, sim.simx_opmode_oneshot)
-        time.sleep(3)
-        sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
-        sim.simxFinish(clientID)
-        print("Rest mode entered.")
-        FH.write_log("admin", "Rest Mode", True, "Telescope entered rest mode.")
+        
+        # Move to rest position
+        sim.simxSetJointTargetPosition(clientID, baseJointHandle, 0.0, sim.simx_opmode_oneshot)  # Az = 0°
+        sim.simxSetJointTargetPosition(clientID, mountJointHandle, math.radians(90), sim.simx_opmode_oneshot)  # Alt = 90°
+        
+        time.sleep(3)  # allow motion to complete
+        
+        print("Rest mode entered (pointing vertical to the sky).")
+        FH.write_log("admin", "Rest Mode", True, "Telescope entered rest mode (vertical).")
+    
     except Exception as e:
         FH.write_log("admin", "Rest Mode", False, f"Failed to enter rest mode: {e}")
         print(f"Error entering rest mode: {e}")
+
 
 def move_tel(alt, az):
     """
