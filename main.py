@@ -1,9 +1,3 @@
-import File_Handling as FH
-import Telescope_Movement as TM
-import Calculations as C
-import System_Checks as SCh
-from System_Config import config
-
 import getpass
 from enum import Enum
 from typing import Optional, Tuple
@@ -14,6 +8,13 @@ from dotenv import load_dotenv
 import os
 import bcrypt
 from datetime import datetime
+
+import File_Handling as FH
+import Telescope_Movement as TM
+import Calculations as C
+import System_Checks as SCh
+from System_Config import config
+
 # Load .env
 load_dotenv()
 
@@ -123,7 +124,6 @@ def create_user():
             return
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         user_data = {
-            'userId': str(len(list(users_collection.find())) + 1),
             'name': name,
             'surname': surname,
             'username': username,
@@ -150,10 +150,10 @@ def list_users():
             return
         print("\nUser List:")
         print("-" * 80)
-        print(f"{'ID':<5} {'Name':<15} {'Username':<15} {'Role':<10} {'Created At':<20}")
+        print(f"{'Name':<15} {'Username':<15} {'Role':<10} {'Created At':<20}")
         print("-" * 80)
         for user in users:
-            print(f"{user['userId']:<5} {user['name']:<15} {user['username']:<15} {user['role']:<10} {user['created_at'].strftime('%Y-%m-%d %H:%M:%S'):<20}")
+            print(f"{user['name']:<15} {user['username']:<15} {user['role']:<10} {user['created_at'].strftime('%Y-%m-%d %H:%M:%S'):<20}")
         print("-" * 80)
         FH.write_log("admin", "List Users", "success", "Listed all users")
     except PyMongoError as e:
