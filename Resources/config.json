@@ -4,11 +4,11 @@
     "elevation": 3400.0,
     "celestial_ping_time": 3,
     "altitude_limits": [
-        -90.0,
-        90.0
+        -75.0,
+        75.0
     ],
     "azimuth_limits": [
-        100.0,
-        340.0
+        25.0,
+        355.0
     ]
 }
