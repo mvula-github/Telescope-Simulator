@@ -123,32 +123,38 @@ def move_tel(alt: float, az: float):
             print(f"DEBUG: First movement CLOCKWISE - Distance: -{math.degrees(clockwise_distance):.2f}°, Target Az: {math.degrees(target_az):.2f}°")
             is_first_movement = False
         else:
-            # For subsequent movements: choose shortest path but account for inverted coordinates
-            # Convert current position back to normal degrees for calculation
-            current_az_degrees = math.degrees(current_az) % 360
-            if current_az_degrees < 0:
-                current_az_degrees += 360
-                
+            # For subsequent movements: choose direction based on position relative to origin
+            print(f"DEBUG: Raw current Az from CoppeliaSim: {math.degrees(current_az):.2f}°")
+            
+            # Convert CoppeliaSim position back to normal 0-360° azimuth
+            current_az_degrees = -math.degrees(current_az) % 360
             target_az_degrees = az
             
-            print(f"DEBUG: Normalized current: {current_az_degrees:.2f}°, target: {target_az_degrees:.2f}°")
+            print(f"DEBUG: Converted current: {current_az_degrees:.2f}°, target: {target_az_degrees:.2f}°")
             
-            # Calculate shortest angular distance
-            diff = target_az_degrees - current_az_degrees
+            # Direction logic based on origin-relative positioning:
+            # If target > current: go clockwise (following natural 0°→360° sequence)
+            # If target < current: go anticlockwise (going back toward origin direction)
             
-            # Normalize to [-180, 180] for shortest path
-            if diff > 180:
-                diff -= 360
-            elif diff < -180:
-                diff += 360
-                
-            print(f"DEBUG: Shortest path difference: {diff:.2f}°")
+            if target_az_degrees > current_az_degrees:
+                # Target is ahead in clockwise sequence - go clockwise
+                direction = "clockwise"
+                # For clockwise in CoppeliaSim, we need negative difference
+                diff = target_az_degrees - current_az_degrees
+                movement_sign = -1  # Negative for clockwise in CoppeliaSim
+            else:
+                # Target is behind in sequence - go anticlockwise back toward origin
+                direction = "anticlockwise"  
+                # For anticlockwise in CoppeliaSim, we need positive difference
+                diff = current_az_degrees - target_az_degrees
+                movement_sign = 1  # Positive for anticlockwise in CoppeliaSim
             
-            # Set target to the desired azimuth, but in CoppeliaSim's inverted coordinate system
-            # Since CoppeliaSim uses negative values for what we consider positive angles
+            print(f"DEBUG: Direction: {direction}, Raw diff: {diff:.2f}°")
+            
+            # Convert target to CoppeliaSim coordinate system (negative)
             target_az = -math.radians(target_az_degrees)
             
-            print(f"DEBUG: Subsequent movement - Moving {diff:.2f}° ({'clockwise' if diff > 0 else 'anticlockwise'}), Target Az: {math.degrees(target_az):.2f}°")
+            print(f"DEBUG: Subsequent movement - Moving {direction} to {target_az_degrees}°, Target Az: {math.degrees(target_az):.2f}°")
 
         # Start simulation if not already running
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
@@ -174,7 +180,8 @@ def move_tel(alt: float, az: float):
 
 def telescope_rest(username: str):
     """
-    Move the telescope to its rest (default) position (Alt=0, Az=0 - straight up).
+    Move the telescope to its rest (default) position (Alt=90, Az=0 - straight up).
+    Always returns to 0° azimuth via anticlockwise rotation.
     """
     global clientID, is_first_movement
     try:
@@ -184,16 +191,32 @@ def telescope_rest(username: str):
         baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
         mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
         
-        # Convert to radians
-        alt_rad = math.radians(0)
-        az_rad = math.radians(0)
-
-        # Ensure clockwise motion for azimuth
+        # Get current azimuth position
         current_az = get_current_joint_position(baseJointHandle)
-        az_diff = (az_rad - current_az) % (2 * math.pi)
-        if az_diff > math.pi:
-            az_diff -= 2 * math.pi
-        target_az = current_az + az_diff
+        
+        # Convert CoppeliaSim position back to normal 0-360° azimuth (consistent with move_tel)
+        print(f"DEBUG REST: Raw current Az from CoppeliaSim: {math.degrees(current_az):.2f}°")
+        current_az_degrees = -math.degrees(current_az) % 360
+        
+        print(f"DEBUG REST: Current Az: {current_az_degrees:.2f}°, Target: 0°")
+        
+        # Calculate anticlockwise distance to 0°
+        if current_az_degrees == 0:
+            # Already at 0°, no movement needed
+            anticlockwise_distance = 0
+        else:
+            # Always go anticlockwise to 0°
+            anticlockwise_distance = current_az_degrees  # Distance to go anticlockwise to reach 0°
+        
+        print(f"DEBUG REST: Anticlockwise distance to origin: {anticlockwise_distance:.2f}°")
+        
+        # Set altitude and azimuth targets
+        alt_rad = math.radians(90)  # Point straight up
+        
+        # Target is always 0° in normal coordinates, which is 0° in CoppeliaSim coordinates  
+        target_az = 0  # 0° in CoppeliaSim = 0° in normal coordinates
+        
+        print(f"DEBUG REST: Target Az in CoppeliaSim coordinates: {math.degrees(target_az):.2f}°")
 
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, baseJointHandle, target_az, sim.simx_opmode_oneshot)
