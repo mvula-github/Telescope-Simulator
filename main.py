@@ -6,14 +6,16 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 import os
-import bcrypt
 from datetime import datetime
-
+from tabulate import tabulate
 import File_Handling as FH
 import Telescope_Movement as TM
 import Calculations as C
 import System_Checks as SCh
 from System_Config import config
+
+from werkzeug.security import generate_password_hash
+from users.middleware.auth import authenticate_user
 
 # Load .env
 load_dotenv()
@@ -95,18 +97,30 @@ def authenticate() -> Optional[dict]:
         try:
             username = input("Enter username: ")
             password = getpass.getpass("Enter password: ")
-            print(f"DEBUG: Querying for username: {username}")
-            user = users_collection.find_one({"username": username})
-            print(f"DEBUG: Found user: {user}")
-            if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
+            def getUsername(u):
+                user = users_collection.find_one({"username": u})
+                if user:
+                    # Use 'password' field directly
+                    pw_hash = user.get('password')
+                    if not pw_hash:
+                        return None
+                    # Keep pw_hash as string for Werkzeug
+                    return {
+                        'id': str(user['_id']),
+                        'password': pw_hash  # Use 'password' field
+                    }
+                return None
+            token, error = authenticate_user(username, password, getUsername)
+            if error:
+                attempts += 1
+                remaining = max_attempts - attempts
+                FH.write_log(username, "Login", "error", f"Failed login attempt: {error}. {remaining} attempts remaining.")
+                print(f"Incorrect credentials: {error}. {remaining} attempts remaining.")
+            else:
+                user = users_collection.find_one({"username": username})
                 FH.write_log(username, "Login", "success", f"Login successful as {user['role']}")
                 print(f"Access granted as {user['role']}.\n")
                 return user
-            else:
-                attempts += 1
-                remaining = max_attempts - attempts
-                FH.write_log(username, "Login", "error", f"Failed login attempt. {remaining} attempts remaining.")
-                print(f"Incorrect credentials. {remaining} attempts remaining.")
         except PyMongoError as e:
             print(f"Error: Failed to authenticate due to MongoDB error: {e}")
             return None
@@ -124,12 +138,12 @@ def create_user():
         if role not in ['admin', 'operator']:
             print("Invalid role. Must be 'admin' or 'operator'.")
             return
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        hashed_password = generate_password_hash(password)
         user_data = {
             'name': name,
             'surname': surname,
             'username': username,
-            'password': hashed_password,
+            'password': hashed_password,  # Use 'password' field
             'role': role,
             'created_at': datetime.now(),
             'updated_at': datetime.now()
@@ -162,6 +176,7 @@ def update_user():
             print(f"User '{username}' not found.")
             return
         print(f"Current details: Name: {user['name']}, Surname: {user['surname']}, Role: {user['role']}")
+        
         name = input("Enter new name (press enter to keep current): ") or user['name']
         surname = input("Enter new surname (press enter to keep current): ") or user['surname']
         role = input("Enter new role (admin/operator, press enter to keep current): ").lower() or user['role']
@@ -176,7 +191,7 @@ def update_user():
             'updated_at': datetime.now()
         }
         if password:
-            update_data['password'] = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+            update_data['password'] = generate_password_hash(password)  # Use 'password' field
         users_collection.update_one({"username": username}, {"$set": update_data})
         print(f"User '{username}' updated successfully.")
         FH.write_log("admin", "Update User", "success", f"Updated user '{username}'")

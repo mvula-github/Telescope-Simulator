@@ -6,14 +6,12 @@ from werkzeug.security import check_password_hash
 from dotenv import load_dotenv
 import os 
 
-
 load_dotenv()
 
 # --- Configuration (should use environment variables in production) ---
 SECRET_KEY = os.getenv("SECRET_KEY")   # Secret key for encoding/decoding JWTs
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")             # Algorithm used for JWT
-TOKEN_EXPIRY_HOURS =os.getenv("TOKEN_EXPIRY_HOURS")                 # Token validity period
-
+TOKEN_EXPIRY_HOURS = os.getenv("TOKEN_EXPIRY_HOURS")   # Token validity period
 
 def generate_jwt(user_id):
     """
@@ -22,7 +20,7 @@ def generate_jwt(user_id):
     """
     payload = {
         'user_id': user_id,
-        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=TOKEN_EXPIRY_HOURS)
+        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=int(TOKEN_EXPIRY_HOURS))
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
     return token
@@ -69,7 +67,7 @@ def token_required(f):
 def authenticate_user(username, password, getUsername):
     """
     Validates user credentials.
-    - getUsername(username) should return a user dict with 'id' and 'password_hash'.
+    - getUsername(username) should return a user dict with 'id' and 'password'.
     - Checks if user exists and password is correct.
     - Returns (token, None) if successful, (None, error_message) otherwise.
     """
@@ -77,10 +75,8 @@ def authenticate_user(username, password, getUsername):
     if not user:
         return None, "User not found"
 
-    if not check_password_hash(user['password_hash'], password):  # Verify password
+    if not check_password_hash(user['password'], password):  # Verify password
         return None, "Invalid password"
 
-    token = generate_jwt(user['id'])          # Generate JWT for
-    return token,None
-
-
+    token = generate_jwt(user['id'])          # Generate JWT
+    return token, None
