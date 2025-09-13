@@ -8,21 +8,22 @@ import Calculations as C
 import ctypes as ct  # Import ctypes for joint position retrieval
 
 # Config vars
-ALTITUDE_LIMITS = config.get('altitude_limits', [-90, 90])
-AZIMUTH_LIMITS = config.get('azimuth_limits', [0, 360])
+ALTITUDE_LIMITS = config.get('altitude_limits', [-75, 75])
+AZIMUTH_LIMITS = config.get('azimuth_limits', [25, 355])
 PING_RA_DEC = config.get('celestial_ping_time', 3)
 MOVEMENT_TIMEOUT = 10  # Increased timeout for slower telescope movement
 POSITION_TOLERANCE = 0.01  # Tolerance in radians for checking if target is reached
 
-# Global variable for telescope connection
+# Global variables for telescope connection and movement tracking
 clientID = None
+is_first_movement = True  # Flag to track if this is the first movement after simulation start
 
 def test_con() -> bool:
     """
     Test and (re)establish connection to CoppeliaSim telescope.
     Returns True if connected, False otherwise.
     """
-    global clientID
+    global clientID, is_first_movement
     try:
         if clientID is None or sim.simxGetConnectionId(clientID) == -1:
             print("Connecting to telescope.")
@@ -30,6 +31,7 @@ def test_con() -> bool:
             clientID = sim.simxStart('127.0.0.1', 19999, True, True, 5000, 5)
             if clientID != -1:
                 print("Connected to telescope.")
+                is_first_movement = True  # Reset for first movement after connection
                 return True
             else:
                 print("Failed to connect to telescope.")
@@ -84,6 +86,7 @@ def move_tel(alt: float, az: float):
     """
     Move the telescope to the specified altitude and azimuth without accumulation.
     """
+    global is_first_movement
     if not check_limits(alt, az):
         raise ValueError(f"Out of limits: Alt={alt} (limits={ALTITUDE_LIMITS}), Az={az} (limits={AZIMUTH_LIMITS})")
     try:
@@ -98,12 +101,54 @@ def move_tel(alt: float, az: float):
         alt_rad = math.radians(alt)
         az_rad = math.radians(az)
 
-        # Ensure clockwise motion for azimuth by calculating shortest path
+        # Get current azimuth
         current_az = get_current_joint_position(baseJointHandle)
-        az_diff = (az_rad - current_az) % (2 * math.pi)
-        if az_diff > math.pi:
-            az_diff -= 2 * math.pi  # Prefer clockwise rotation
-        target_az = current_az + az_diff
+        
+        print(f"DEBUG: Current Az: {math.degrees(current_az):.2f}°, Target Az: {az:.2f}°")
+        
+        # Calculate azimuth difference
+        if is_first_movement:
+            # For first movement: ALWAYS go clockwise regardless of shortest path
+            # Calculate how far we need to go clockwise to reach target
+            if az_rad >= current_az:
+                # Target is clockwise from current - go directly clockwise
+                clockwise_distance = az_rad - current_az
+            else:
+                # Target is behind current - go clockwise the long way around
+                clockwise_distance = (2 * math.pi) - (current_az - az_rad)
+            
+            # IMPORTANT: CoppeliaSim uses inverted coordinates (positive = anticlockwise)
+            # So we need to NEGATE our clockwise distance to get actual clockwise rotation
+            target_az = current_az - clockwise_distance  # Changed from + to -
+            print(f"DEBUG: First movement CLOCKWISE - Distance: -{math.degrees(clockwise_distance):.2f}°, Target Az: {math.degrees(target_az):.2f}°")
+            is_first_movement = False
+        else:
+            # For subsequent movements: choose shortest path but account for inverted coordinates
+            # Convert current position back to normal degrees for calculation
+            current_az_degrees = math.degrees(current_az) % 360
+            if current_az_degrees < 0:
+                current_az_degrees += 360
+                
+            target_az_degrees = az
+            
+            print(f"DEBUG: Normalized current: {current_az_degrees:.2f}°, target: {target_az_degrees:.2f}°")
+            
+            # Calculate shortest angular distance
+            diff = target_az_degrees - current_az_degrees
+            
+            # Normalize to [-180, 180] for shortest path
+            if diff > 180:
+                diff -= 360
+            elif diff < -180:
+                diff += 360
+                
+            print(f"DEBUG: Shortest path difference: {diff:.2f}°")
+            
+            # Set target to the desired azimuth, but in CoppeliaSim's inverted coordinate system
+            # Since CoppeliaSim uses negative values for what we consider positive angles
+            target_az = -math.radians(target_az_degrees)
+            
+            print(f"DEBUG: Subsequent movement - Moving {diff:.2f}° ({'clockwise' if diff > 0 else 'anticlockwise'}), Target Az: {math.degrees(target_az):.2f}°")
 
         # Start simulation if not already running
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
@@ -127,11 +172,11 @@ def move_tel(alt: float, az: float):
         print(f"Error moving telescope: {e}")
         raise
 
-def telescope_rest():
+def telescope_rest(username: str):
     """
-    Move the telescope to its rest (default) position (Alt=90, Az=0 - straight up).
+    Move the telescope to its rest (default) position (Alt=0, Az=0 - straight up).
     """
-    global clientID  # Declared at the start
+    global clientID, is_first_movement
     try:
         if not test_con():
             raise RuntimeError("Connection failed")
@@ -140,7 +185,7 @@ def telescope_rest():
         mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
         
         # Convert to radians
-        alt_rad = math.radians(90)
+        alt_rad = math.radians(0)
         az_rad = math.radians(0)
 
         # Ensure clockwise motion for azimuth
@@ -159,17 +204,18 @@ def telescope_rest():
         mount_reached = wait_for_joint_position(mountJointHandle, alt_rad)
 
         if base_reached and mount_reached:
-            print("Rest mode entered.")
-            FH.write_log("system", "Rest Mode", "success", "Telescope entered rest mode.")
+            print("Rest mode entered (pointing vertical to the sky).")
+            FH.write_log(username, "Rest Mode", "success", "Telescope entered rest mode (vertical).")
         else:
             print("Warning: Rest mode movement timed out.")
-            FH.write_log("system", "Rest Mode", "warning", "Timeout entering rest mode.")
+            FH.write_log(username, "Rest Mode", "warning", "Timeout entering rest mode.")
 
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxFinish(clientID)
         clientID = None
+        is_first_movement = True  # Reset for next connection
     except Exception as e:
-        FH.write_log("system", "Rest Mode", "error", f"Failed to enter rest mode: {e}")
+        FH.write_log(username, "Rest Mode", "error", f"Failed to enter rest mode: {e}")
         print(f"Error entering rest mode: {e}")
         raise
 
@@ -184,7 +230,7 @@ def track_celestial_object(code: str):
             while time.time() - start_time < PING_RA_DEC:
                 if keyboard.is_pressed('q') or keyboard.is_pressed('Q'):
                     print("Stopping tracking...")
-                    telescope_rest()
+                    telescope_rest("system")
                     FH.write_log("system", "Tracking", "success", "Stopped tracking celestial object.")
                     return
                 time.sleep(0.1)
@@ -204,12 +250,12 @@ def track_celestial_object(code: str):
                 print(f"Coordinates (Alt: {alt:.2f}°, Az: {az:.2f}°) -> Stopping movement.")
                 FH.write_log("system", "Tracking", "warning", f"Celestial object out of bounds: Alt: {alt}, Az: {az}.")
                 if test_con():
-                    telescope_rest()
+                    telescope_rest("system")
                 break
     except KeyboardInterrupt:
         FH.write_log("system", "Tracking", "warning", "Tracking interrupted by user.")
         if test_con():
-            telescope_rest()
+            telescope_rest("system")
         print("Tracking stopped by user.")
     except Exception as e:
         FH.write_log("system", "Tracking", "error", f"Error occurred during tracking: {e}")
@@ -219,11 +265,12 @@ def close():
     """
     Close the CoppeliaSim connection (call on program exit).
     """
-    global clientID
+    global clientID, is_first_movement
     if clientID is not None and clientID != -1:
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxFinish(clientID)
         clientID = None
+        is_first_movement = True  # Reset for next connection
         print("CoppeliaSim connection closed.")
 
 def main():

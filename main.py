@@ -274,7 +274,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 FH.write_log(username, "Tracking", "error", str(e))
         elif choice == 4:  # Rest Mode
             try:
-                TM.telescope_rest()
+                TM.telescope_rest(username)
                 print("Telescope moved to rest position.")
                 FH.write_log(username, "Rest Mode", "success", "Telescope moved to rest position")
             except Exception as e:
