@@ -4,17 +4,10 @@ import keyboard
 import File_Handling as FH
 from System_Config import config
 import sim
-
-# Load telescope movement limits from configuration
-ALTITUDE_LIMITS = config.get('altitude_limits')
-AZIMUTH_LIMITS = config.get('azimuth_limits')
-
-# Time interval for updating celestial coordinates
-PING_RA_DEC = config.get('celestial_ping_time')
 import Calculations as C
 import ctypes as ct  # Import ctypes for joint position retrieval
 
-# Config vars
+# Load telescope movement limits from configuration
 ALTITUDE_LIMITS = config.get('altitude_limits', [-75, 75])
 AZIMUTH_LIMITS = config.get('azimuth_limits', [25, 355])
 PING_RA_DEC = config.get('celestial_ping_time', 3)
@@ -103,10 +96,8 @@ def move_tel(alt: float, az: float):
             raise RuntimeError("Connection failed")
         
         # Get joint handles
-        # Get handles for base and mount joints
         baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
         mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
-        # Start simulation and move joints to rest position (0 degrees)
 
         # Convert to radians
         alt_rad = math.radians(alt)
@@ -114,71 +105,36 @@ def move_tel(alt: float, az: float):
 
         # Get current azimuth
         current_az = get_current_joint_position(baseJointHandle)
-        
         print(f"DEBUG: Current Az: {math.degrees(current_az):.2f}°, Target Az: {az:.2f}°")
-        
+
         # Calculate azimuth difference
         if is_first_movement:
             # For first movement: ALWAYS go clockwise regardless of shortest path
-            # Calculate how far we need to go clockwise to reach target
             if az_rad >= current_az:
-                # Target is clockwise from current - go directly clockwise
                 clockwise_distance = az_rad - current_az
             else:
-                # Target is behind current - go clockwise the long way around
                 clockwise_distance = (2 * math.pi) - (current_az - az_rad)
-            
-            # IMPORTANT: CoppeliaSim uses inverted coordinates (positive = anticlockwise)
-            # So we need to NEGATE our clockwise distance to get actual clockwise rotation
-            target_az = current_az - clockwise_distance  # Changed from + to -
+            target_az = current_az - clockwise_distance  # CoppeliaSim uses inverted coordinates
             print(f"DEBUG: First movement CLOCKWISE - Distance: -{math.degrees(clockwise_distance):.2f}°, Target Az: {math.degrees(target_az):.2f}°")
             is_first_movement = False
         else:
-            # For subsequent movements: choose direction based on position relative to origin
-            print(f"DEBUG: Raw current Az from CoppeliaSim: {math.degrees(current_az):.2f}°")
-            
-            # Convert CoppeliaSim position back to normal 0-360° azimuth
             current_az_degrees = -math.degrees(current_az) % 360
             target_az_degrees = az
-            
             print(f"DEBUG: Converted current: {current_az_degrees:.2f}°, target: {target_az_degrees:.2f}°")
-            
-            # Direction logic based on origin-relative positioning:
-            # If target > current: go clockwise (following natural 0°→360° sequence)
-            # If target < current: go anticlockwise (going back toward origin direction)
-            
             if target_az_degrees > current_az_degrees:
-                # Target is ahead in clockwise sequence - go clockwise
                 direction = "clockwise"
-                # For clockwise in CoppeliaSim, we need negative difference
                 diff = target_az_degrees - current_az_degrees
-                movement_sign = -1  # Negative for clockwise in CoppeliaSim
+                movement_sign = -1
             else:
-                # Target is behind in sequence - go anticlockwise back toward origin
-                direction = "anticlockwise"  
-                # For anticlockwise in CoppeliaSim, we need positive difference
+                direction = "anticlockwise"
                 diff = current_az_degrees - target_az_degrees
-                movement_sign = 1  # Positive for anticlockwise in CoppeliaSim
-            
+                movement_sign = 1
             print(f"DEBUG: Direction: {direction}, Raw diff: {diff:.2f}°")
-            
-            # Convert target to CoppeliaSim coordinate system (negative)
             target_az = -math.radians(target_az_degrees)
-            
             print(f"DEBUG: Subsequent movement - Moving {direction} to {target_az_degrees}°, Target Az: {math.degrees(target_az):.2f}°")
 
         # Start simulation if not already running
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
-        sim.simxSetJointTargetPosition(clientID, baseJointHandle, 0.0, sim.simx_opmode_oneshot)
-        sim.simxSetJointTargetPosition(clientID, mountJointHandle, 0.0, sim.simx_opmode_oneshot)
-        time.sleep(3)
-        # Stop simulation and disconnect
-        sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
-        sim.simxFinish(clientID)
-        print("Rest mode entered.")
-        FH.write_log("admin", "Rest Mode", True, "Telescope entered rest mode.")
-
-        # Set target positions
         sim.simxSetJointTargetPosition(clientID, baseJointHandle, target_az, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, mountJointHandle, alt_rad, sim.simx_opmode_oneshot)
 
@@ -204,73 +160,36 @@ def telescope_rest(username: str):
     """
     global clientID, is_first_movement
     try:
-        # Get handles for base and mount joints
         if not test_con():
             raise RuntimeError("Connection failed")
-        
         baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
         mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
-        # Start simulation and move joints to target positions (converted to radians)
-        
-        # Get current azimuth position
         current_az = get_current_joint_position(baseJointHandle)
-        
-        # Convert CoppeliaSim position back to normal 0-360° azimuth (consistent with move_tel)
-        print(f"DEBUG REST: Raw current Az from CoppeliaSim: {math.degrees(current_az):.2f}°")
         current_az_degrees = -math.degrees(current_az) % 360
-        
         print(f"DEBUG REST: Current Az: {current_az_degrees:.2f}°, Target: 0°")
-        
-        # Calculate anticlockwise distance to 0°
-        if current_az_degrees == 0:
-            # Already at 0°, no movement needed
-            anticlockwise_distance = 0
-        else:
-            # Always go anticlockwise to 0°
-            anticlockwise_distance = current_az_degrees  # Distance to go anticlockwise to reach 0°
-        
+        anticlockwise_distance = current_az_degrees if current_az_degrees != 0 else 0
         print(f"DEBUG REST: Anticlockwise distance to origin: {anticlockwise_distance:.2f}°")
-        
-        # Set altitude and azimuth targets
-        alt_rad = math.radians(90)  # Point straight up
-        
-        # Target is always 0° in normal coordinates, which is 0° in CoppeliaSim coordinates  
-        target_az = 0  # 0° in CoppeliaSim = 0° in normal coordinates
-        
+        alt_rad = math.radians(90)
+        target_az = 0
         print(f"DEBUG REST: Target Az in CoppeliaSim coordinates: {math.degrees(target_az):.2f}°")
-
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, baseJointHandle, target_az, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, mountJointHandle, alt_rad, sim.simx_opmode_oneshot)
-
-        # Wait for joints to reach target positions
         base_reached = wait_for_joint_position(baseJointHandle, target_az)
         mount_reached = wait_for_joint_position(mountJointHandle, alt_rad)
-
         if base_reached and mount_reached:
             print("Rest mode entered (pointing vertical to the sky).")
             FH.write_log(username, "Rest Mode", "success", "Telescope entered rest mode (vertical).")
         else:
             print("Warning: Rest mode movement timed out.")
             FH.write_log(username, "Rest Mode", "warning", "Timeout entering rest mode.")
-
         sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxFinish(clientID)
         clientID = None
         is_first_movement = True  # Reset for next connection
     except Exception as e:
-        FH.write_log("admin", "Telescope Movement", False, f"Failed to move telescope to Alt: {alt}, Az: {az} -> Error: {e}")
-        print(f"Error moving telescope: {e}")
-
-def check_limits(alt, az):
-    """
-    Check if the given altitude and azimuth are within the telescope's movement limits.
-    """
-    # Return True if both altitude and azimuth are within configured limits
-    return ALTITUDE_LIMITS[0] <= alt <= ALTITUDE_LIMITS[1] and AZIMUTH_LIMITS[0] <= az <= AZIMUTH_LIMITS[1]
         FH.write_log(username, "Rest Mode", "error", f"Failed to enter rest mode: {e}")
         print(f"Error entering rest mode: {e}")
-        raise
 
 def track_celestial_object(code: str):
     """
@@ -308,7 +227,6 @@ def track_celestial_object(code: str):
                     telescope_rest("system")
                 break
     except KeyboardInterrupt:
-        # Handle user interrupt (Ctrl+C)
         FH.write_log("system", "Tracking", "warning", "Tracking interrupted by user.")
         if test_con():
             telescope_rest("system")
@@ -330,7 +248,6 @@ def close():
         print("CoppeliaSim connection closed.")
 
 def main():
-    # Start tracking the celestial object with code "M31" (Andromeda Galaxy)
     """
     Test function.
     """
