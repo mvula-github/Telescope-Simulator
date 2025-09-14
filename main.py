@@ -13,9 +13,9 @@ import Telescope_Movement as TM
 import Calculations as C
 import System_Checks as SCh
 from System_Config import config
-
 from werkzeug.security import generate_password_hash
 from users.middleware.auth import authenticate_user
+from user_management import create_user, list_users, update_user, delete_user
 
 # Load .env
 load_dotenv()
@@ -72,12 +72,12 @@ MENUS = {
         'admin': ["1. Telescope Control", "2. Configure Settings", "3. Coordinate System", "4. User Management", "5. Display Data", "6. Exit"],
         'operator': ["1. Telescope Control", "2. Display Data", "3. Exit"]
     },
-    1: ["1. Point To AltAz", "2. Point To RaDec", "3. Tracking", "4. Rest Mode"],
-    2: ["1. Change Telescope Location", "2. Change Data Store Location", "3. Change Telescope Limits"],
-    3: ["1. Convert Alt & Az to Ra & Dec", "2. Convert Ra & Dec to Alt & Az"],
-    4: ["1. Create User", "2. List Users", "3. Update User", "4. Delete User"],
+    1: ["1. Point To AltAz", "2. Point To RaDec", "3. Tracking", "4. Rest Mode", "5. Back"],
+    2: ["1. Change Telescope Location", "2. Change Data Store Location", "3. Change Telescope Limits", "4. Back"],
+    3: ["1. Convert Alt & Az to Ra & Dec", "2. Convert Ra & Dec to Alt & Az", "3. Back"],
+    4: ["1. Create User", "2. List Users", "3. Update User", "4. Delete User", "5. Back"],
     5: ["1. Display Location", "2. Display Telescope Logs", "3. Display All Commands & Descriptions", 
-        "4. Display Available Celestial Objects", "5. Check Internet Connection"]
+        "4. Display Available Celestial Objects", "5. Check Internet Connection", "6. Back"]
 }
 
 # Menu enumeration
@@ -127,93 +127,6 @@ def authenticate() -> Optional[dict]:
     print("Maximum login attempts reached. Exiting.")
     exit(1)
 
-# Create a new user
-def create_user():
-    try:
-        name = input("Enter name: ")
-        surname = input("Enter surname: ")
-        username = input("Enter username: ")
-        password = getpass.getpass("Enter password: ")
-        role = input("Enter role (admin/operator): ").lower()
-        if role not in ['admin', 'operator']:
-            print("Invalid role. Must be 'admin' or 'operator'.")
-            return
-        hashed_password = generate_password_hash(password)
-        user_data = {
-            'name': name,
-            'surname': surname,
-            'username': username,
-            'password': hashed_password,  # Use 'password' field
-            'role': role,
-            'created_at': datetime.now(),
-            'updated_at': datetime.now()
-        }
-        users_collection.insert_one(user_data)
-        print(f"User '{username}' created successfully.")
-        FH.write_log("admin", "Create User", "success", f"Created user '{username}' with role '{role}'")
-    except PyMongoError as e:
-        print(f"Error creating user: {e}")
-        FH.write_log("admin", "Create User", "error", f"Failed to create user: {e}")
-
-# List all users
-def list_users():
-    try:
-        users = users_collection.find()
-        print("\nUsers:")
-        for user in users:
-            print(f"Username: {user['username']}, Name: {user['name']} {user['surname']}, Role: {user['role']}")
-        FH.write_log("admin", "List Users", "success", "Listed all users")
-    except PyMongoError as e:
-        print(f"Error listing users: {e}")
-        FH.write_log("admin", "List Users", "error", f"Failed to list users: {e}")
-
-# Update an existing user
-def update_user():
-    try:
-        username = input("Enter username to update: ")
-        user = users_collection.find_one({"username": username})
-        if not user:
-            print(f"User '{username}' not found.")
-            return
-        print(f"Current details: Name: {user['name']}, Surname: {user['surname']}, Role: {user['role']}")
-        
-        name = input("Enter new name (press enter to keep current): ") or user['name']
-        surname = input("Enter new surname (press enter to keep current): ") or user['surname']
-        role = input("Enter new role (admin/operator, press enter to keep current): ").lower() or user['role']
-        if role and role not in ['admin', 'operator']:
-            print("Invalid role. Must be 'admin' or 'operator'.")
-            return
-        password = getpass.getpass("Enter new password (press enter to keep current): ")
-        update_data = {
-            'name': name,
-            'surname': surname,
-            'role': role,
-            'updated_at': datetime.now()
-        }
-        if password:
-            update_data['password'] = generate_password_hash(password)  # Use 'password' field
-        users_collection.update_one({"username": username}, {"$set": update_data})
-        print(f"User '{username}' updated successfully.")
-        FH.write_log("admin", "Update User", "success", f"Updated user '{username}'")
-    except PyMongoError as e:
-        print(f"Error updating user: {e}")
-        FH.write_log("admin", "Update User", "error", f"Failed to update user: {e}")
-
-# Delete an existing user
-def delete_user():
-    try:
-        username = input("Enter username to delete: ")
-        user = users_collection.find_one({"username": username})
-        if not user:
-            print(f"User '{username}' not found.")
-            return
-        users_collection.delete_one({"username": username})
-        print(f"User '{username}' deleted successfully.")
-        FH.write_log("admin", "Delete User", "success", f"Deleted user '{username}'")
-    except PyMongoError as e:
-        print(f"Error deleting user: {e}")
-        FH.write_log("admin", "Delete User", "error", f"Failed to delete user: {e}")
-
 # Display menu based on user role and menu ID
 def display_menu(menu_id: int, role: str):
     options = MENUS[menu_id]
@@ -236,6 +149,18 @@ def get_menu_choice() -> int:
 def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[Menu]:
     username = user['username']
     role = user['role']
+    # Handle "Back" option for each submenu
+    if current_menu == Menu.TELESCOPE and choice == 5:
+        return Menu.MAIN
+    if current_menu == Menu.CONFIG and choice == 4:
+        return Menu.MAIN
+    if current_menu == Menu.COORDS and choice == 3:
+        return Menu.MAIN
+    if current_menu == Menu.USER_MANAGEMENT and choice == 5:
+        return Menu.MAIN
+    if current_menu == Menu.DISPLAY and choice == 6:
+        return Menu.MAIN
+
     if current_menu == Menu.MAIN:
         if choice == 1:
             return Menu.TELESCOPE

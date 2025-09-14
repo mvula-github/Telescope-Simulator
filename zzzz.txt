@@ -1,0 +1,61 @@
+1. Redundant User Management Logic
+You have custom user management functions (create_user, list_users, update_user, delete_user) that are very similar to those in Main_Program.py. If both files are used, consider consolidating user management into a single module to avoid code duplication.
+
+2. Hardcoded Role Checks
+Role checks like if role == 'admin' are repeated throughout the code. This can be abstracted into a decorator or helper function for cleaner access control.
+
+3. Repeated Logging Patterns
+The pattern for logging user actions is repeated in every try/except block. You could create a helper function to wrap actions and handle logging and error reporting, reducing boilerplate.
+
+4. Menu Handling Redundancy
+The menu display and choice handling logic is verbose and repetitive. You can refactor this by:
+
+Using a data-driven approach for menu definitions and permissions.
+Mapping menu choices to handler functions in a dictionary, reducing the need for long if/elif chains.
+5. Input Validation Repetition
+Input validation for fields like username, password, RA/Dec, etc., is scattered and sometimes repeated. Centralize validation logic in utility functions or a validation module.
+
+6. Direct Database Access in UI Functions
+Functions like create_user and update_user directly access the database and handle user input. This mixes concerns. Consider separating database logic from user interaction for better testability and maintainability.
+
+7. Error Handling Consistency
+Some error messages are printed directly, others are logged. Standardize error handling and reporting, possibly using a custom exception handler or logger.
+
+8. Use of Magic Strings
+Strings like "admin", "operator", and command names are used throughout. Define these as constants or enums to avoid typos and ease refactoring.
+
+9. Redundant Imports
+Some imports (e.g., from werkzeug.security import generate_password_hash) are only used in one or two places. If user management is refactored, these can be moved or consolidated.
+
+10. Unnecessary Global Variables
+The user variable in main() is set to None and then immediately overwritten. This can be simplified.
+
+11. Password Handling
+When updating a user, if the password is left blank, the old password is kept. This is good, but you should also ensure that passwords are always hashed and never stored or compared in plaintext.
+
+12. Repeated Calls to datetime.now()
+When creating or updating users, datetime.now() is called multiple times. Assign it to a variable once per operation for consistency.
+
+13. Potential for DRY (Don't Repeat Yourself) in Menu Navigation
+The navigation logic for menus is verbose. Consider a loop or dispatcher pattern to reduce repetition.
+
+14. Type Annotations
+Some functions have type annotations, others do not. For consistency and better IDE support, add type annotations throughout.
+
+15. Unused Imports
+Check if all imports are necessary (e.g., tabulate is imported but not used).
+
+16. Exception Handling Granularity
+Catching only PyMongoError in some places may miss other exceptions (e.g., ValueError). Consider broader exception handling where appropriate, or more granular where needed.
+
+17. Repeated Prompt Strings
+Prompt strings like "Enter username: " are repeated. Consider defining them as constants.
+
+18. No Unit Tests
+There are no tests for input validation or menu logic. Consider adding tests for critical functions.
+
+19. No Feedback for Invalid Menu Choices
+When an invalid menu choice is made, the user is told "Invalid choice or insufficient permissions." Consider providing more specific feedback.
+
+20. Potential for Infinite Loops
+If a user keeps entering invalid input, some loops will continue indefinitely. Consider adding a maximum retry count for all input loops.
