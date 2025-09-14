@@ -23,3 +23,9 @@ ERROR: The object name that you have submitted is not currently recognized by th
 2025-09-01	02:07:42	mohau	Login	Failed login attempt
 2025-09-01	02:14:19	admin	Login	Failed login attempt
 2025-09-01	02:22:09	admin	Rest Mode	Failed to enter rest mode: argument 1: TypeError: 'NoneType' object cannot be interpreted as an integer
+2025-09-06	17:47:18	admin	Login	Failed login attempt
+2025-09-06	17:47:26	admin	Login	Failed login attempt
+2025-09-06	17:47:32	admin	Login	Failed login attempt
+2025-09-06	17:50:48	admin	Telescope Connection	Failed to connect to telescope.
+2025-09-09	00:39:31	admin	Telescope Connection	Failed to connect to telescope.
+2025-09-09	00:49:37	admin	Telescope Connection	Failed to connect to telescope.
