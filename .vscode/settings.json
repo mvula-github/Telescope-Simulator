@@ -1,3 +1,18 @@
 {
-  "cSpell.words": ["altaz", "celesti", "Coppelia", "ddmmss", "radec"]
+  "cSpell.words": [
+    "altaz",
+    "astropy",
+    "astroquery",
+    "celesti",
+    "colnames",
+    "Coppelia",
+    "ddmmss",
+    "geocoder",
+    "hourangle",
+    "icrs",
+    "ipac",
+    "latlng",
+    "obstime",
+    "radec"
+  ]
 }
