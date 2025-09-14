@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+MONGO_URI = os.getenv('MONGO_URI')
 DB_NAME = os.getenv('DB_NAME', 'celestiCodeServerDB')
 
 try:
@@ -18,17 +18,19 @@ except PyMongoError as e:
     print(f"Error: Failed to connect to MongoDB for Astronomical Objects: {e}")
     objects_collection = None
 
-def create_object(name: str, description: str, ra_dec: str, ned_code: str):
+def create_object(user_id: str, name: str, description: str, ra_dec: str, ned_code: str):
     if objects_collection is None:
         print("Database not initialized.")
         return
     obj = {
+        "user_id": user_id,
         "name": name,
         "description": description,
         "ra_dec": ra_dec,
         "ned_code": ned_code,
         "created_at": datetime.now(),
-        "updated_at": datetime.now()
+        "updated_at": datetime.now(),
+        "tracking": False
     }
     try:
         objects_collection.insert_one(obj)
@@ -36,17 +38,17 @@ def create_object(name: str, description: str, ra_dec: str, ned_code: str):
     except PyMongoError as e:
         print(f"Error creating object: {e}")
 
-def list_objects():
+def list_objects(user_id: str):
     if objects_collection is None:
         print("Database not initialized.")
         return
     try:
-        objs = list(objects_collection.find())
+        objs = list(objects_collection.find({"user_id": user_id}))
         if not objs:
             print("No astronomical objects found.")
             return
         for obj in objs:
-            print(f"Name: {obj['name']}, Description: {obj['description']}, RA/Dec: {obj['ra_dec']}, NED Code: {obj['ned_code']}")
+            print(f"Name: {obj['name']}, Description: {obj['description']}, RA/Dec: {obj['ra_dec']}, NED Code: {obj['ned_code']}, User ID: {obj['user_id']}")
     except PyMongoError as e:
         print(f"Error listing objects: {e}")
 
@@ -82,3 +84,17 @@ def delete_object(name: str):
             print(f"No object found with name '{name}'.")
     except PyMongoError as e:
         print(f"Error deleting object: {e}")
+
+def track_object(user_id: str, object_id: str):
+    if objects_collection is None:
+        print("Database not initialized.")
+        return
+    try:
+        obj = objects_collection.find_one({"user_id": user_id, "_id": object_id})
+        if obj:
+            objects_collection.update_one({"user_id": user_id, "_id": object_id}, {"$set": {"tracking": True}})
+            print(f"Object '{obj['name']}' is now being tracked.")
+        else:
+            print(f"Object with ID '{object_id}' not found.")
+    except PyMongoError as e:
+        print(f"Error tracking object: {e}")
