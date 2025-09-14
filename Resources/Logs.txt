@@ -3,3 +3,14 @@ Date        Time        User        Command     Description
 2025-06-20	09:50:48	admin	Login	Login successful
 2025-06-20	09:51:05	admin	Telescope Movement	Moved telescope to Alt: 50.0, Az: 250.0
 2025-06-20	09:55:09	admin	Rest Mode	Telescope entered rest mode.
+2025-09-06	17:48:23	admin	Login	Login successful
+2025-09-09	00:40:03	admin	Telescope Movement	Moved telescope to Alt: 60.0, Az: 200.0
+2025-09-09	00:40:03	admin	Point To AltAz	Moved telescope to Alt: 60.0, Az: 200.0
+2025-09-09	00:50:06	admin	Telescope Movement	Moved telescope to Alt: 20.0, Az: 200.0
+2025-09-09	00:50:06	admin	Point To AltAz	Moved telescope to Alt: 20.0, Az: 200.0
+2025-09-09	00:50:27	admin	Rest Mode	Telescope entered rest mode.
+2025-09-09	00:50:27	admin	Rest Mode	Telescope moved to rest mode
+2025-09-09	00:51:47	admin	Telescope Movement	Moved telescope to Alt: 40.0, Az: 200.0
+2025-09-09	00:51:47	admin	Point To AltAz	Moved telescope to Alt: 40.0, Az: 200.0
+2025-09-09	00:53:01	admin	Rest Mode	Telescope entered rest mode.
+2025-09-09	00:53:01	admin	Rest Mode	Telescope moved to rest mode
