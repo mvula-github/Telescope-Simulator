@@ -2,12 +2,9 @@ import getpass
 from enum import Enum
 from typing import Optional, Tuple
 import re
-from pymongo import MongoClient
-from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 import os
 from datetime import datetime
-from tabulate import tabulate
 import File_Handling as FH
 import Telescope_Movement as TM
 import Calculations as C
@@ -15,28 +12,11 @@ import System_Checks as SCh
 from System_Config import config
 from werkzeug.security import generate_password_hash
 from users.middleware.auth import authenticate_user
-from user_management import create_user, list_users, update_user, delete_user
+from user_management import create_user, list_users, update_user, delete_user, users_collection
+from Track_Objects import create_object, list_objects, update_object, delete_object, objects_collection
 
 # Load .env
 load_dotenv()
-
-# MongoDB setup for Users collection
-MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
-DB_NAME = os.getenv('DB_NAME', 'celestiCodeServerDB')
-try:
-    client = MongoClient(MONGO_URI)
-    db = client[DB_NAME]
-    users_collection = db['users']
-except PyMongoError as e:
-    print(f"Error: Failed to connect to MongoDB for Users collection: {e}")
-    exit(1)
-
-# Initialize MongoDB
-try:
-    FH.init_mongodb()
-except RuntimeError as e:
-    print(f"Error: {e}")
-    exit(1)
 
 # Command descriptions for display
 COMMAND_DESCRIPTIONS = {
@@ -69,15 +49,29 @@ COMMAND_DESCRIPTIONS = {
 # Menu options for each menu ID
 MENUS = {
     0: {
-        'admin': ["1. Telescope Control", "2. Configure Settings", "3. Coordinate System", "4. User Management", "5. Display Data", "6. Exit"],
-        'operator': ["1. Telescope Control", "2. Display Data", "3. Exit"]
+        'admin': [
+            "1. Telescope Control",
+            "2. Configure Settings",
+            "3. Coordinate System",
+            "4. User Management",
+            "5. Display Data",
+            "6. Object Management",
+            "7. Exit"
+        ],
+        'operator': [
+            "1. Telescope Control",
+            "2. Display Data",
+            "3. Exit"
+        ]
     },
-    1: ["1. Point To AltAz", "2. Point To RaDec", "3. Tracking", "4. Rest Mode", "5. Back"],
+    1: ["1. Point To AltAz", "2. Point To RaDec", "3. Tracking", "4. Rest Mode", "5. Objects", "6. Back"],
     2: ["1. Change Telescope Location", "2. Change Data Store Location", "3. Change Telescope Limits", "4. Back"],
     3: ["1. Convert Alt & Az to Ra & Dec", "2. Convert Ra & Dec to Alt & Az", "3. Back"],
     4: ["1. Create User", "2. List Users", "3. Update User", "4. Delete User", "5. Back"],
     5: ["1. Display Location", "2. Display Telescope Logs", "3. Display All Commands & Descriptions", 
-        "4. Display Available Celestial Objects", "5. Check Internet Connection", "6. Back"]
+        "4. Display Available Celestial Objects", "5. Check Internet Connection", "6. Back"],
+    6: ["1. Create Object", "2. List Objects", "3. Update Object", "4. Delete Object", "5. Back"],
+    7: ["Select an object by number, or type 0 to go back."]
 }
 
 # Menu enumeration
@@ -88,6 +82,8 @@ class Menu(Enum):
     COORDS = 3
     USER_MANAGEMENT = 4
     DISPLAY = 5
+    OBJECT_MANAGEMENT = 6
+    OBJECTS = 7
 
 # Authenticate user against Users collection with retry limit
 def authenticate() -> Optional[dict]:
@@ -121,15 +117,18 @@ def authenticate() -> Optional[dict]:
                 FH.write_log(username, "Login", "success", f"Login successful as {user['role']}")
                 print(f"Access granted as {user['role']}.\n")
                 return user
-        except PyMongoError as e:
-            print(f"Error: Failed to authenticate due to MongoDB error: {e}")
+        except Exception as e:
+            print(f"Error: Failed to authenticate: {e}")
             return None
     print("Maximum login attempts reached. Exiting.")
     exit(1)
 
 # Display menu based on user role and menu ID
 def display_menu(menu_id: int, role: str):
-    options = MENUS[menu_id]
+    options = MENUS.get(menu_id)
+    if options is None:
+        print("Menu not found.")
+        return
     if isinstance(options, dict):
         options = options.get(role, options.get('admin', []))
     for option in options:
@@ -150,7 +149,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
     username = user['username']
     role = user['role']
     # Handle "Back" option for each submenu
-    if current_menu == Menu.TELESCOPE and choice == 5:
+    if current_menu == Menu.TELESCOPE and choice == 6:
         return Menu.MAIN
     if current_menu == Menu.CONFIG and choice == 4:
         return Menu.MAIN
@@ -159,6 +158,10 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
     if current_menu == Menu.USER_MANAGEMENT and choice == 5:
         return Menu.MAIN
     if current_menu == Menu.DISPLAY and choice == 6:
+        return Menu.MAIN
+    if current_menu == Menu.OBJECTS and choice == 0:
+        return Menu.TELESCOPE
+    if current_menu == Menu.OBJECT_MANAGEMENT and choice == 5:
         return Menu.MAIN
 
     if current_menu == Menu.MAIN:
@@ -172,7 +175,9 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
             return Menu.USER_MANAGEMENT
         elif choice == 5:
             return Menu.DISPLAY
-        elif (role == 'admin' and choice == 6) or (role == 'operator' and choice == 3):
+        elif choice == 6 and role == 'admin':
+            return Menu.OBJECT_MANAGEMENT
+        elif (role == 'admin' and choice == 7) or (role == 'operator' and choice == 3):
             return None  # Exit
         else:
             print("Invalid choice or insufficient permissions.")
@@ -185,10 +190,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 TM.move_tel(alt, az)
                 print(f"Telescope moved to Alt: {alt}, Az: {az}")
                 FH.write_log(username, "Point to AltAz", "success", f"Moved telescope to Alt: {alt}, Az: {az}")
-            except ValueError as e:
-                print(f"Error: {e}")
-                FH.write_log(username, "Point to AltAz", "error", str(e))
-            except RuntimeError as e:
+            except Exception as e:
                 print(f"Error: {e}")
                 FH.write_log(username, "Point to AltAz", "error", str(e))
         elif choice == 2:  # Point to RaDec
@@ -198,10 +200,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 TM.move_tel(alt, az)
                 print(f"Telescope moved to RA: {ra}, Dec: {dec} (Alt: {alt}, Az: {az})")
                 FH.write_log(username, "Point to RaDec", "success", f"Moved telescope to RA: {ra}, Dec: {dec}")
-            except ValueError as e:
-                print(f"Error: {e}")
-                FH.write_log(username, "Point to RaDec", "error", str(e))
-            except RuntimeError as e:
+            except Exception as e:
                 print(f"Error: {e}")
                 FH.write_log(username, "Point to RaDec", "error", str(e))
         elif choice == 3:  # Tracking
@@ -220,107 +219,92 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
             except Exception as e:
                 print(f"Error: {e}")
                 FH.write_log(username, "Rest Mode", "error", str(e))
+        elif choice == 5:  # Objects submenu
+            return Menu.OBJECTS
+        elif choice == 6:
+            return Menu.MAIN
         return None
-    elif current_menu == Menu.CONFIG and role == 'admin':
-        if choice == 1:  # Change Telescope Location
-            try:
-                latitude = float(input("Enter latitude (-90 to 90): "))
-                longitude = float(input("Enter longitude (-180 to 180): "))
-                elevation = float(input("Enter elevation (meters): "))
-                if not (-90 <= latitude <= 90 and -180 <= longitude <= 180 and elevation >= 0):
-                    raise ValueError("Invalid location values.")
-                config.update('latitude', latitude)
-                config.update('longitude', longitude)
-                config.update('elevation', elevation)
-                print("Location updated successfully.")
-                FH.write_log(username, "Change Telescope Location", "success", f"Updated to Lat: {latitude}, Lon: {longitude}, Elev: {elevation}")
-            except ValueError as e:
-                print(f"Error: {e}")
-                FH.write_log(username, "Change Telescope Location", "error", str(e))
-        elif choice == 2:  # Change Data Store Location
-            try:
-                directory = input("Enter new data store directory: ")
-                is_valid, error = FH.is_valid_directory(directory)
-                if not is_valid:
-                    raise ValueError(error)
-                config.update('data_store_location', directory)
-                print("Data store location updated successfully.")
-                FH.write_log(username, "Change Data Store Location", "success", f"Updated data store to {directory}")
-            except ValueError as e:
-                print(f"Error: {e}")
-                FH.write_log(username, "Change Data Store Location", "error", str(e))
-        elif choice == 3:  # Change Telescope Limits
-            try:
-                alt_min = float(input("Enter minimum altitude (-75 to 75): "))
-                alt_max = float(input("Enter maximum altitude (-75 to 75): "))
-                az_min = float(input("Enter minimum azimuth (25 to 355): "))
-                az_max = float(input("Enter maximum azimuth (25 to 355): "))
-                if not (-90 <= alt_min <= alt_max <= 90 and 0 <= az_min <= az_max <= 360):
-                    raise ValueError("Invalid limit values.")
-                config.update('altitude_limits', [alt_min, alt_max])
-                config.update('azimuth_limits', [az_min, az_max])
-                print("Telescope limits updated successfully.")
-                FH.write_log(username, "Change Telescope Limits", "success", f"Updated limits to Alt: [{alt_min}, {alt_max}], Az: [{az_min}, {az_max}]")
-            except ValueError as e:
-                print(f"Error: {e}")
-                FH.write_log(username, "Change Telescope Limits", "error", str(e))
-        return None
-    elif current_menu == Menu.COORDS and role == 'admin':
-        if choice == 1:  # Convert Alt & Az to Ra & Dec
-            try:
-                alt, az = get_valid_alt_az()
-                ra, dec = C.convert_altaz_to_radec(alt, az)
-                print(f"AltAz converted to RaDec: RA: {ra}, Dec: {dec}")
-                FH.write_log(username, "Convert AltAz to RaDec", "success", f"Converted Alt: {alt}, Az: {az} to RA: {ra}, Dec: {dec}")
-            except ValueError as e:
-                print(f"Error: {e}")
-                FH.write_log(username, "Convert AltAz to RaDec", "error", str(e))
-        elif choice == 2:  # Convert Ra & Dec to Alt & Az
-            try:
-                ra, dec = get_valid_ra_dec()
-                alt, az = C.convert_radec_to_altaz(ra, dec)
-                print(f"RaDec converted to AltAz: ALT: {alt}, AZ: {az}")
-                FH.write_log(username, "Convert RaDec to AltAz", "success", f"Converted RA: {ra}, Dec: {dec} to Alt: {alt}, Az: {az}")
-            except ValueError as e:
-                print(f"Error: {e}")
-                FH.write_log(username, "Convert RaDec to AltAz", "error", str(e))
-        return None
-    elif current_menu == Menu.USER_MANAGEMENT and role == 'admin':
+    elif current_menu == Menu.OBJECTS:
+        # List objects from the database
+        if objects_collection is None:
+            print("Database not initialized.")
+            return Menu.TELESCOPE
+        try:
+            objs = list(objects_collection.find())
+            if not objs:
+                print("No astronomical objects found.")
+                return Menu.TELESCOPE
+            print("\nAvailable Objects:")
+            for idx, obj in enumerate(objs, 1):
+                print(f"{idx}. {obj['name']} - {obj['description']}")
+            print("0. Back")
+            selection = input("Select an object by number (or 0 to go back): ")
+            if not selection.isdigit():
+                print("Invalid input.")
+                return Menu.OBJECTS
+            selection = int(selection)
+            if selection == 0:
+                return Menu.TELESCOPE
+            if 1 <= selection <= len(objs):
+                obj = objs[selection - 1]
+                # Display selected object details before moving telescope
+                print(f"\nSelected: {obj['name']}")
+                print(f"Description: {obj['description']}")
+                print(f"RA/Dec: {obj['ra_dec']}")
+                print(f"NED Code: {obj['ned_code']}")
+                try:
+                    ra_str, dec_str = obj['ra_dec'].split(',')
+                    ra = float(ra_str.strip())
+                    dec = float(dec_str.strip())
+                    alt, az = C.convert_radec_to_altaz(ra, dec)
+                    TM.move_tel(alt, az)
+                    print(f"Telescope pointed to {obj['name']} (RA: {ra}, Dec: {dec})")
+                    FH.write_log(username, f"Point to {obj['name']}", "success", f"Moved telescope to {obj['name']} (RA: {ra}, Dec: {dec})")
+                except Exception as e:
+                    print(f"Error: {e}")
+                    FH.write_log(username, f"Point to {obj['name']}", "error", str(e))
+                return Menu.OBJECTS
+            else:
+                print("Invalid selection.")
+                return Menu.OBJECTS
+        except Exception as e:
+            print(f"Error: {e}")
+            return Menu.TELESCOPE
+    elif current_menu == Menu.OBJECT_MANAGEMENT and role == 'admin':
         if choice == 1:
-            create_user()
+            # Create Object
+            name = input("Enter object name: ")
+            description = input("Enter description: ")
+            ra_dec = input("Enter RA,Dec (comma separated, e.g. '12.34,56.78'): ")
+            ned_code = input("Enter NED code: ")
+            create_object(name, description, ra_dec, ned_code)
         elif choice == 2:
-            list_users()
+            # List Objects
+            list_objects()
         elif choice == 3:
-            update_user()
+            # Update Object
+            name = input("Enter the name of the object to update: ")
+            if not name:
+                print("Object name is required.")
+                return None
+            description = input("Enter new description (leave blank to keep current): ")
+            ra_dec = input("Enter new RA,Dec (leave blank to keep current): ")
+            ned_code = input("Enter new NED code (leave blank to keep current): ")
+            # Only pass values if provided
+            kwargs = {}
+            if description: kwargs['description'] = description
+            if ra_dec: kwargs['ra_dec'] = ra_dec
+            if ned_code: kwargs['ned_code'] = ned_code
+            update_object(name, **kwargs)
         elif choice == 4:
-            delete_user()
-        return None
-    elif current_menu == Menu.DISPLAY:
-        if choice == 1:  # Display Location
-            print("(Latitude, Longitude, Elevation)")
-            print(f"IP: {C.get_location_and_elevation('ip')}")
-            print(f"Last Saved: {C.get_location_and_elevation('stored')}")
-            FH.write_log(username, "Display Location", "success", "Displayed location info")
-        elif choice == 2:  # Display Telescope Logs
-            FH.display_logs()
-        elif choice == 3:  # Display All Commands & Descriptions
-            print("\nAvailable commands: \n")
-            for command, description in COMMAND_DESCRIPTIONS.items():
-                print(f"{command}: {description}")
-        elif choice == 4:  # Display Available Celestial Objects
-            ra = input("Enter Ra degree: ")
-            dec = input("Enter dec degree: ")
-            try:
-                C.list_available_celestial_objects(ra, dec, radius=0.1)
-                FH.write_log(username, "Display Available Celestial Objects", "success", f"Listed objects near RA: {ra}, Dec: {dec}")
-            except Exception as e:
-                print(f"Error: {e}")
-                FH.write_log(username, "Display Available Celestial Objects", "error", str(e))
-        elif choice == 5:  # Check Internet Connection
-            success, msg = SCh.check_internet_connection()
-            level = "success" if success else "warning"
-            print(msg)
-            FH.write_log(username, "Check Internet Connection", level, msg)
+            # Delete Object
+            name = input("Enter the name of the object to delete: ")
+            if not name:
+                print("Object name is required.")
+                return None
+            delete_object(name)
+        elif choice == 5:
+            return Menu.MAIN
         return None
     else:
         print("Access denied: Insufficient permissions.")
@@ -398,22 +382,23 @@ def celestial_code_input_validation(code: str) -> bool:
 
 # Main program loop
 def main():
-    user = None
-    user = authenticate()
-    if not user:
-        print("Authentication failed. Please check MongoDB connection and Users collection.")
-        exit(1)
-    
-    current_menu = Menu.MAIN
-    while True:
-        display_menu(current_menu.value, user['role'])
-        choice = get_menu_choice()
-        if current_menu == Menu.MAIN and ((user['role'] == 'admin' and choice == 6) or (user['role'] == 'operator' and choice == 3)):
-            FH.write_log(user['username'], "Exit", "success", "Program exited")
-            TM.close()  # Close CoppeliaSim connection
-            break
-        next_menu = handle_menu_choice(current_menu, choice, user)
-        current_menu = next_menu if next_menu else Menu.MAIN
+    try:
+        user = authenticate()
+        if not user:
+            print("Authentication failed. Please check MongoDB connection and Users collection.")
+            exit(1)
+        current_menu = Menu.MAIN
+        while True:
+            display_menu(current_menu.value, user['role'])
+            choice = get_menu_choice()
+            if current_menu == Menu.MAIN and ((user['role'] == 'admin' and choice == 7) or (user['role'] == 'operator' and choice == 3)):
+                FH.write_log(user['username'], "Exit", "success", "Program exited")
+                TM.close()
+                break
+            next_menu = handle_menu_choice(current_menu, choice, user)
+            current_menu = next_menu if next_menu else Menu.MAIN
+    except Exception as e:
+        print(f"Fatal error: {e}")
 
 if __name__ == '__main__':
     main()

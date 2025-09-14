@@ -19,7 +19,7 @@ except PyMongoError as e:
     objects_collection = None
 
 def create_object(name: str, description: str, ra_dec: str, ned_code: str):
-    if not objects_collection:
+    if objects_collection is None:
         print("Database not initialized.")
         return
     obj = {
@@ -37,7 +37,7 @@ def create_object(name: str, description: str, ra_dec: str, ned_code: str):
         print(f"Error creating object: {e}")
 
 def list_objects():
-    if not objects_collection:
+    if objects_collection is None:
         print("Database not initialized.")
         return
     try:
@@ -51,7 +51,7 @@ def list_objects():
         print(f"Error listing objects: {e}")
 
 def update_object(name: str, description: str = None, ra_dec: str = None, ned_code: str = None):
-    if not objects_collection:
+    if objects_collection is None:
         print("Database not initialized.")
         return
     update_data = {"updated_at": datetime.now()}
@@ -71,7 +71,7 @@ def update_object(name: str, description: str = None, ra_dec: str = None, ned_co
         print(f"Error updating object: {e}")
 
 def delete_object(name: str):
-    if not objects_collection:
+    if objects_collection is None:
         print("Database not initialized.")
         return
     try:
@@ -81,4 +81,4 @@ def delete_object(name: str):
         else:
             print(f"No object found with name '{name}'.")
     except PyMongoError as e:
-        print(f"Error deleting object: {e}") 
+        print(f"Error deleting object: {e}")

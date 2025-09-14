@@ -151,6 +151,17 @@ def convert_radec_to_altaz(ra, dec):
     altaz_coords = icrs_coords.transform_to(altaz_frame)
     return altaz_coords.alt.degree, altaz_coords.az.degree
 
+def get_object_radec(object_name: str):
+    # Example static values; replace with actual calculations or catalog lookup
+    objects = {
+        "moon": ("05h34m32s", "+22d00m52s"),
+        "sun": ("07h45m18s", "+20d30m00s"),
+    }
+    if object_name.lower() in objects:
+        return objects[object_name.lower()]
+    else:
+        raise ValueError("Unknown object")
+
 def main():
     latitude, longitude, elevation = get_location_and_elevation()
     object_code, object_name, ra, dec = get_celestial_object_details("M31")
