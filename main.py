@@ -1,4 +1,5 @@
 import getpass
+import logging
 from enum import Enum
 from typing import Optional, Tuple
 import re
@@ -17,6 +18,9 @@ from Track_Objects import create_object, list_objects, update_object, delete_obj
 
 # Load .env
 load_dotenv()
+
+# Configure application logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 # Command descriptions for display
 COMMAND_DESCRIPTIONS = {
@@ -118,7 +122,7 @@ def authenticate() -> Optional[dict]:
                 print(f"Access granted as {user['role']}.\n")
                 return user
         except Exception as e:
-            print(f"Error: Failed to authenticate: {e}")
+            logging.error(f"Failed to authenticate: {e}")
             return None
     print("Maximum login attempts reached. Exiting.")
     exit(1)
@@ -268,7 +272,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print("Invalid selection.")
                 return Menu.OBJECTS
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Objects menu error: {e}")
             return Menu.TELESCOPE
     elif current_menu == Menu.OBJECT_MANAGEMENT and role == 'admin':
         if choice == 1:
@@ -385,6 +389,24 @@ def main():
     try:
         # Initialize MongoDB logging backend
         FH.init_mongodb()
+        # Ensure there is at least one admin user
+        try:
+            if users_collection is not None and not users_collection.find_one({"role": "admin"}):
+                default_username = os.getenv("DEFAULT_ADMIN_USERNAME", "admin")
+                default_password = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123")
+                hashed_pw = generate_password_hash(default_password)
+                users_collection.insert_one({
+                    'username': default_username,
+                    'password': hashed_pw,
+                    'role': 'admin',
+                    'name': 'Default',
+                    'surname': 'Admin',
+                    'created_at': datetime.now(),
+                    'updated_at': datetime.now()
+                })
+                logging.warning("No admin found. Created default admin account. Change credentials immediately.")
+        except Exception as e:
+            logging.error(f"Failed to ensure default admin: {e}")
         user = authenticate()
         if not user:
             print("Authentication failed. Please check MongoDB connection and Users collection.")
@@ -400,7 +422,7 @@ def main():
             next_menu = handle_menu_choice(current_menu, choice, user)
             current_menu = next_menu if next_menu else Menu.MAIN
     except Exception as e:
-        print(f"Fatal error: {e}")
+        logging.error(f"Fatal error: {e}")
 
 if __name__ == '__main__':
     main()
