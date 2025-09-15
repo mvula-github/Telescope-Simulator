@@ -13,7 +13,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Mock config (should match your auth.py config)
+# Ensure required env vars for tests
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("JWT_ALGORITHM", "HS256")
+os.environ.setdefault("TOKEN_EXPIRY_HOURS", "24")
 SECRET_KEY = os.getenv("SECRET_KEY") 
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 

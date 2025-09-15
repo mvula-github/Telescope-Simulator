@@ -93,6 +93,7 @@ class Menu(Enum):
 def authenticate() -> Optional[dict]:
     max_attempts = 3
     attempts = 0
+    backoff_seconds = 1
     while attempts < max_attempts:
         try:
             username = input("Enter username: ")
@@ -116,6 +117,8 @@ def authenticate() -> Optional[dict]:
                 remaining = max_attempts - attempts
                 FH.write_log(username, "Login", "error", f"Failed login attempt: {error}. {remaining} attempts remaining.")
                 print(f"Incorrect credentials: {error}. {remaining} attempts remaining.")
+                time.sleep(backoff_seconds)
+                backoff_seconds = min(backoff_seconds * 2, 8)
             else:
                 user = users_collection.find_one({"username": username})
                 FH.write_log(username, "Login", "success", f"Login successful as {user['role']}")
