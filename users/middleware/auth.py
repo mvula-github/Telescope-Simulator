@@ -9,9 +9,15 @@ import os
 load_dotenv()
 
 # --- Configuration (should use environment variables in production) ---
-SECRET_KEY = os.getenv("SECRET_KEY")   # Secret key for encoding/decoding JWTs
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")             # Algorithm used for JWT
-TOKEN_EXPIRY_HOURS = os.getenv("TOKEN_EXPIRY_HOURS")   # Token validity period
+SECRET_KEY = os.getenv("SECRET_KEY")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+try:
+    TOKEN_EXPIRY_HOURS = int(os.getenv("TOKEN_EXPIRY_HOURS", "24"))
+except ValueError:
+    TOKEN_EXPIRY_HOURS = 24
+
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is not set. Define SECRET_KEY in your environment or .env file.")
 
 def generate_jwt(user_id):
     """
@@ -20,7 +26,7 @@ def generate_jwt(user_id):
     """
     payload = {
         'user_id': user_id,
-        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=int(TOKEN_EXPIRY_HOURS))
+        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=TOKEN_EXPIRY_HOURS)
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
     return token

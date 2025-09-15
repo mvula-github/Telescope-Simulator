@@ -1,9 +1,11 @@
 {
-	"folders": [
-		{
-			"name": "Telescope-Simulator",
-			"path": "."
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "name": "Telescope-Simulator",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "cSpell.words": ["werkzeug"]
+  }
 }

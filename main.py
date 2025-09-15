@@ -277,10 +277,10 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
             description = input("Enter description: ")
             ra_dec = input("Enter RA,Dec (comma separated, e.g. '12.34,56.78'): ")
             ned_code = input("Enter NED code: ")
-            create_object(name, description, ra_dec, ned_code)
+            create_object(str(user['_id']), name, description, ra_dec, ned_code)
         elif choice == 2:
             # List Objects
-            list_objects()
+            list_objects(str(user['_id']))
         elif choice == 3:
             # Update Object
             name = input("Enter the name of the object to update: ")
@@ -383,6 +383,8 @@ def celestial_code_input_validation(code: str) -> bool:
 # Main program loop
 def main():
     try:
+        # Initialize MongoDB logging backend
+        FH.init_mongodb()
         user = authenticate()
         if not user:
             print("Authentication failed. Please check MongoDB connection and Users collection.")

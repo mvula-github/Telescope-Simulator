@@ -62,13 +62,12 @@ class config:
         """
         required_keys = [
             'latitude', 'longitude', 'elevation',
-            'time_to_wait', 'altitude_limits', 'azimuth_limits'
+            'celestial_ping_time', 'altitude_limits', 'azimuth_limits'
         ]
         missing_keys = [key for key in required_keys if key not in self._data]
         if missing_keys:
             logging.error(f"Missing configuration keys: {missing_keys}")
             return False
-        return True
         return True
 
 # Instantiate a single config object for use throughout the application

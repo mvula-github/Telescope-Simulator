@@ -59,3 +59,79 @@ When an invalid menu choice is made, the user is told "Invalid choice or insuffi
 
 20. Potential for Infinite Loops
 If a user keeps entering invalid input, some loops will continue indefinitely. Consider adding a maximum retry count for all input loops.
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Architecture and cross-cutting
+Consolidate duplicate CLIs: You have both main.py and Main_Program.py implementing overlapping menu flows with divergent validation and logging. Pick one entry point (recommend main.py), extract reusable services (auth, users, objects, telescope control) into modules, and delete or archive the other to avoid drift.
+Standardize logging: Replace print with Python logging app‑wide. Ensure MongoDB logging via File_Handling.write_log is initialized exactly once at startup and treated as a sink, not the only logger.
+Initialize dependencies at boot: Call FH.init_mongodb() at program start (before any FH.write_log); fail fast with a clear message if it cannot connect.
+Environment safety defaults: In users/middleware/auth.py, add sane defaults and checks for SECRET_KEY, JWT_ALGORITHM, and TOKEN_EXPIRY_HOURS to prevent None/TypeError at runtime. Do not run without a SECRET_KEY.
+Dependency hygiene: requirements.txt contains duplicates and likely-unused packages (e.g., SQLAlchemy, psycopg2, duplicate requests and python-dotenv). Trim to only what’s used; pin versions.
+.env example and configuration: Add a README section and .env.example for MONGO_URI, DB_NAME, SECRET_KEY, JWT_ALGORITHM, TOKEN_EXPIRY_HOURS. Validate these at startup.
+
+
+Config (System_Config.py, Resources/config.json)
+Instance/class name collision: The class and instance are both named config. Rename the class to AppConfig and keep instance config to avoid confusion.
+Validation mismatch: validate() requires time_to_wait, but the JSON uses celestial_ping_time. Unify on one key (suggest celestial_ping_time) and fix validate().
+Minor cleanups: Remove the duplicate return {} and duplicate logging.basicConfig; simplify error handling to one path.
+
+Auth and users
+Align password field names: Your runtime uses user['password'] with Werkzeug hashes, while tests/test_auth.py builds users with password_hash. Standardize on password everywhere.
+Fix authenticate_user contract in tests: In tests you call authenticate_user(self.username, self.password, self.username) — the third arg should be a function getUsername, not a string. Provide a lambda that returns {'id': ..., 'password': ...}.
+JWT defaults and errors: Cast TOKEN_EXPIRY_HOURS safely, e.g., int(os.getenv("TOKEN_EXPIRY_HOURS", "24")); guard for missing SECRET_KEY and raise a clear error.
+Remove Flask coupling unless needed: token_required decorates Flask routes, but there’s no Flask app elsewhere. If you don’t serve HTTP, move this to a web module or feature flag its import to avoid pulling Flask into CLI contexts.
+User management API: user_management.py exposes interactive functions that read from input(). main.py imports create_user, list_users, ... and uses them as if they are non-interactive services. Extract service layer functions that accept arguments (username, role, etc.), and keep CLI prompting only in the UI layer.
+
+Objects (Track_Objects.py) and usage in main.py
+Parameter mismatch: create_object, list_objects expect user_id; main.py calls them without it. Pass user['_id'] (string) on create/list/update/delete, or change the API to infer actor from session.
+Collection scope: Functions filter by user_id. The menu list in main.py expects all objects; align behavior: either list all for admins and user-scoped for operators, or make it configurable.
+Display/pointing flow: When selecting an object in Menu.OBJECTS, you parse ra_dec as "ra, dec". Consider storing RA/Dec as separate numeric fields to avoid parsing failures and to index/query cleanly.
+
+Telescope control (Telescope_Movement.py, sim.py)
+Robust sim library handling: If sim.libsimx fails to load, referencing sim.c_GetJointPosition will raise. Add an early guard in Telescope_Movement (on import or in test_con) to raise a clear error when the native lib is missing.
+Keyboard dependency: keyboard on Windows often requires admin privileges. Provide a fallback (e.g., msvcrt non-blocking key read) and a config flag to run headless without key polling.
+Movement logic clarity: The “first movement always clockwise” rule is encoded but might cause unexpected long rotations. Consider a config flag or heuristic to prefer shortest path unless a safety rationale exists.
+Timeouts and tolerances: Make MOVEMENT_TIMEOUT and POSITION_TOLERANCE configurable via config.json.
+Threading/non-blocking: Movement and tracking loops block the CLI. Consider running tracking in a background thread with safe cancellation, or provide async-friendly structure.
+
+Calculations (Calculations.py)
+Location source: get_location_and_elevation('stored') pulls from config; ensure System_Config instance is initialized before use. Cache elevation/IP lookups, add exponential backoff and a configurable retries/timeout.
+Input flexibility: convert_radec_to_degrees accepts varied formats; unify behavior and document accepted inputs. Your RA/Dec regex in main.py is stricter; align both sides so UI validation matches the conversion function’s capabilities.
+Astropy frames/time: Consider allowing a Time parameter for deterministic tests and repeatable conversions.
+
+File handling and logging (File_Handling.py)
+Fail-fast logging: Raise a single descriptive exception in write_log if init_mongodb() hasn’t been called, but ensure the app initializes at boot to avoid noisy failures later.
+Display formatting: You import tabulate but format manually. Either use tabulate for a compact table or remove the dependency.
+
+Network checks (System_Checks.py)
+Return types: Currently returns (bool, message). Ensure all callers expect this (some call and directly print(result), which prints a tuple). Standardize on a small dataclass or a consistent string for CLI.
+
+Tests
+Fix tests/test_auth.py:
+Set env vars in test setup (SECRET_KEY, JWT_ALGORITHM, TOKEN_EXPIRY_HOURS).
+Use consistent user shape with password.
+Pass a proper getUsername function that returns the expected dict.
+Add missing test coverage:
+Add unit tests for System_Config.validate, RA/Dec conversions with known fixtures, and Telescope_Movement.check_limits.
+Create lightweight tests for File_Handling.init_mongodb using a mock or test container; or gate with env var to skip if Mongo isn’t available.
+Remove empty tests: tests/test_controller.py, tests/test_interface.py are empty; either implement or remove to avoid confusion.
+
+Security and ops
+Credentials: Ensure there’s no plain‑text credentials in repo (I see Resources/credentials.txt). Remove or git-ignore sensitive files.
+Rate limiting and lockout: You already limit to 3 attempts. Consider simple exponential backoff or temporary lockout logged to Mongo.
+Secrets in logs: Avoid logging sensitive fields; current logs look safe.
+
+Quick wins (low-risk edits)
+Call init_mongodb() at main() start.
+Unify celestial_ping_time naming across config and movement.
+Add env var defaults and checks in auth.py.
+Fix object management calls in main.py to pass user_id.
+Clean requirements.txt and add .env.example.
+If you want, I can implement the highest‑impact fixes (initialization, config/validate alignment, auth defaults, objects API call fixes) in one pass.
+I’m going to begin by wiring FH.init_mongodb() in main.py, aligning System_Config.validate, and fixing auth env defaults and Track_Objects calls in main.py. Then I’ll tidy requirements.txt.
+Summary
+Identified duplicates and inconsistencies across main.py vs Main_Program.py, config keys, auth env handling, user/object APIs, and tests.
+Recommended: consolidate entry point; initialize Mongo logging early; fix config key mismatch; enforce auth env defaults; pass user_id to object APIs; trim requirements; improve robustness for sim library and keyboard; add targeted tests.

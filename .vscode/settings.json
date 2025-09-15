@@ -7,12 +7,18 @@
     "colnames",
     "Coppelia",
     "ddmmss",
+    "dotenv",
     "geocoder",
     "hourangle",
     "icrs",
     "ipac",
     "latlng",
+    "levelname",
+    "loguru",
     "obstime",
-    "radec"
+    "psycopg",
+    "pytest",
+    "radec",
+    "werkzeug"
   ]
 }
