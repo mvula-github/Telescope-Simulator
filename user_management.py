@@ -31,7 +31,7 @@ except RuntimeError as e:
 
 # Service-layer, non-interactive helpers
 def create_user_service(username: str, password: str, role: str, name: str, surname: str):
-    if not users_collection:
+    if users_collection is None:
         raise RuntimeError("Database not initialized.")
     if role not in ['admin', 'operator']:
         raise ValueError("Invalid role. Must be 'admin' or 'operator'.")
@@ -52,12 +52,12 @@ def create_user_service(username: str, password: str, role: str, name: str, surn
     return True
 
 def list_users_service():
-    if not users_collection:
+    if users_collection is None:
         raise RuntimeError("Database not initialized.")
     return list(users_collection.find({}, {"password": 0}))
 
 def update_user_service(username: str, name: str = None, surname: str = None, role: str = None, password: str = None):
-    if not users_collection:
+    if users_collection is None:
         raise RuntimeError("Database not initialized.")
     update_data = { 'updated_at': datetime.now() }
     if name is not None:
@@ -79,7 +79,7 @@ def update_user_service(username: str, name: str = None, surname: str = None, ro
     return True
 
 def delete_user_service(username: str):
-    if not users_collection:
+    if users_collection is None:
         raise RuntimeError("Database not initialized.")
     res = users_collection.delete_one({"username": username})
     if res.deleted_count == 0:
@@ -89,7 +89,7 @@ def delete_user_service(username: str):
 
 # Create a new user (interactive)
 def create_user():
-    if not users_collection:
+    if users_collection is None:
         print("Database not initialized.")
         return
     try:
@@ -120,7 +120,7 @@ def create_user():
 
 # List all users (interactive)
 def list_users():
-    if not users_collection:
+    if users_collection is None:
         print("Database not initialized.")
         return
     try:
@@ -135,7 +135,7 @@ def list_users():
 
 # Update an existing user (interactive)
 def update_user():
-    if not users_collection:
+    if users_collection is None:
         print("Database not initialized.")
         return
     try:
@@ -170,7 +170,7 @@ def update_user():
 
 # Delete an existing user (interactive)
 def delete_user():
-    if not users_collection:
+    if users_collection is None:
         print("Database not initialized.")
         return
     try:

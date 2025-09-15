@@ -310,6 +310,24 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
         elif choice == 5:
             return Menu.MAIN
         return None
+    elif current_menu == Menu.USER_MANAGEMENT and role == 'admin':
+        if choice == 1:
+            # Create User
+            create_user()
+        elif choice == 2:
+            # List Users
+            list_users()
+        elif choice == 3:
+            # Update User
+            update_user()
+        elif choice == 4:
+            # Delete User
+            delete_user()
+        elif choice == 5:
+            return Menu.MAIN
+        else:
+            print("Invalid choice.")
+        return None
     else:
         print("Access denied: Insufficient permissions.")
         FH.write_log(username, f"Access Menu {current_menu.name}", "error", "User role does not permit access")

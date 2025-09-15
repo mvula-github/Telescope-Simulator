@@ -81,8 +81,39 @@ def authenticate_user(username, password, getUsername):
     if not user:
         return None, "User not found"
 
-    if not check_password_hash(user['password'], password):  # Verify password
-        return None, "Invalid password"
+    # Normalize potential bytes values from legacy storage or calling code
+    stored_hash = user.get('password')
+    if isinstance(stored_hash, bytes):
+        try:
+            stored_hash = stored_hash.decode('utf-8')
+        except Exception:
+            return None, 'Stored password hash is not valid UTF-8'
+
+    # Reject missing/blank stored hash early
+    if not stored_hash or (isinstance(stored_hash, str) and stored_hash.strip() == ''):
+        return None, 'Password not set for user'
+
+    if isinstance(password, bytes):
+        try:
+            password = password.decode('utf-8')
+        except Exception:
+            return None, 'Password provided is not valid UTF-8'
+
+    try:
+        # Preferred: verify via Werkzeug hash
+        if not check_password_hash(stored_hash, password):
+            return None, "Invalid password"
+    except Exception as exc:
+        # Fallback for legacy records with plaintext passwords or unknown hash methods
+        message = str(exc)
+        if 'Invalid hash method' in message or 'hash is not a valid' in message:
+            if stored_hash == password:
+                # Accept legacy plaintext match; encourage migration elsewhere
+                pass
+            else:
+                return None, 'Invalid password'
+        else:
+            return None, 'Password verification error'
 
     token = generate_jwt(user['id'])          # Generate JWT
     return token, None
