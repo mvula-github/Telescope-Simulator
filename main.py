@@ -284,6 +284,124 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
         except Exception as e:
             logging.error(f"Objects menu error: {e}")
             return Menu.TELESCOPE
+    elif current_menu == Menu.CONFIG and role == 'admin':
+        if choice == 1:
+            # Change Telescope Location
+            try:
+                lat = float(input("Enter new Latitude: "))
+                lon = float(input("Enter new Longitude: "))
+                ele = float(input("Enter new Elevation (meters): "))
+                config.update('latitude', lat)
+                config.update('longitude', lon)
+                config.update('elevation', ele)
+                print("Telescope location updated.")
+                FH.write_log(username, "Configure Location", "success", f"Set lat={lat}, lon={lon}, ele={ele}")
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Configure Location", "error", str(e))
+        elif choice == 2:
+            # Change Data Store Location
+            try:
+                path = input("Enter new data store directory path: ")
+                config.update('data_store_location', path)
+                print("Data store location updated.")
+                FH.write_log(username, "Configure Data Store", "success", path)
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Configure Data Store", "error", str(e))
+        elif choice == 3:
+            # Change Telescope Limits
+            try:
+                alt_min = float(input("Enter Altitude Min (-90..90): "))
+                alt_max = float(input("Enter Altitude Max (-90..90): "))
+                az_min = float(input("Enter Azimuth Min (0..360): "))
+                az_max = float(input("Enter Azimuth Max (0..360): "))
+                config.update('altitude_limits', [alt_min, alt_max])
+                config.update('azimuth_limits', [az_min, az_max])
+                print("Telescope limits updated.")
+                FH.write_log(username, "Configure Limits", "success", f"Alt:[{alt_min},{alt_max}] Az:[{az_min},{az_max}]")
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Configure Limits", "error", str(e))
+        elif choice == 4:
+            return Menu.MAIN
+        else:
+            print("Invalid choice.")
+        return None
+    elif current_menu == Menu.COORDS and role == 'admin':
+        if choice == 1:
+            # Convert Alt/Az to RA/Dec
+            try:
+                alt, az = get_valid_alt_az()
+                ra, dec = C.convert_altaz_to_radec(alt, az)
+                print(f"Converted Alt/Az ({alt}, {az}) -> RA: {ra:.3f}h, Dec: {dec:.3f}°")
+                FH.write_log(username, "Convert AltAz->RaDec", "success", f"Alt:{alt},Az:{az} -> RA:{ra},Dec:{dec}")
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Convert AltAz->RaDec", "error", str(e))
+        elif choice == 2:
+            # Convert RA/Dec to Alt/Az
+            try:
+                ra, dec = get_valid_ra_dec()
+                alt, az = C.convert_radec_to_altaz(ra, dec)
+                print(f"Converted RA/Dec ({ra}, {dec}) -> Alt: {alt:.2f}°, Az: {az:.2f}°")
+                FH.write_log(username, "Convert RaDec->AltAz", "success", f"RA:{ra},Dec:{dec} -> Alt:{alt},Az:{az}")
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Convert RaDec->AltAz", "error", str(e))
+        elif choice == 3:
+            return Menu.MAIN
+        else:
+            print("Invalid choice.")
+        return None
+    elif current_menu == Menu.DISPLAY:
+        if choice == 1:
+            # Display Location
+            try:
+                lat, lon, ele = C.get_location_and_elevation('stored')
+                print(f"Stored Location -> Latitude: {lat}, Longitude: {lon}, Elevation: {ele}m")
+                FH.write_log(username, "Display Location", "success", f"lat={lat}, lon={lon}, ele={ele}")
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Display Location", "error", str(e))
+        elif choice == 2:
+            # Display Telescope Logs
+            try:
+                FH.display_logs()
+                FH.write_log(username, "Display Logs", "success", "Displayed logs")
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Display Logs", "error", str(e))
+        elif choice == 3:
+            # Display All Commands & Descriptions
+            try:
+                for cmd, desc in COMMAND_DESCRIPTIONS.items():
+                    print(f"- {cmd}: {desc}")
+                FH.write_log(username, "Display Commands", "success", "Displayed commands")
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Display Commands", "error", str(e))
+        elif choice == 4:
+            # Display Available Celestial Objects
+            try:
+                ra, dec = get_valid_ra_dec()
+                radius_str = input("Enter search radius in degrees (default 0.1): ").strip()
+                radius = float(radius_str) if radius_str else 0.1
+                C.list_available_celestial_objects(ra, dec, radius)
+                FH.write_log(username, "Display Objects", "success", f"Around RA:{ra},Dec:{dec},R:{radius}")
+            except Exception as e:
+                print(f"Error: {e}")
+                FH.write_log(username, "Display Objects", "error", str(e))
+        elif choice == 5:
+            # Check Internet Connection
+            status = SCh.check_internet_connection()
+            print(SCh.connection_message(status))
+            FH.write_log(username, "Internet Check", "success" if status.ok else "warning", status.message)
+        elif choice == 6:
+            return Menu.MAIN
+        else:
+            print("Invalid choice.")
+        return None
     elif current_menu == Menu.OBJECT_MANAGEMENT and role == 'admin':
         if choice == 1:
             # Create Object
