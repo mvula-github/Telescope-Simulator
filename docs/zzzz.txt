@@ -124,6 +124,11 @@ Credentials: Ensure there’s no plain‑text credentials in repo (I see Resourc
 Rate limiting and lockout: You already limit to 3 attempts. Consider simple exponential backoff or temporary lockout logged to Mongo.
 Secrets in logs: Avoid logging sensitive fields; current logs look safe.
 
+Give me your tasks. If helpful, I can:
+Run a brief health audit (config keys present, DB connectivity, scene lib present).
+Add non-interactive admin endpoints or CLI scripts for batch user migration.
+Expand tests beyond auth (menu flows, object CRUD, movement stubs).
+
 Quick wins (low-risk edits)
 Call init_mongodb() at main() start.
 Unify celestial_ping_time naming across config and movement.

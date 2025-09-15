@@ -1,22 +1,47 @@
 import time
 import math
-import keyboard
 import File_Handling as FH
 from System_Config import config
 import sim
 import Calculations as C
 import ctypes as ct  # Import ctypes for joint position retrieval
+import threading
+
+try:
+    import keyboard  # May require elevated privileges on Windows
+    _KEYBOARD_AVAILABLE = True
+except Exception:
+    keyboard = None
+    _KEYBOARD_AVAILABLE = False
+try:
+    import msvcrt  # Windows-only fallback
+    _MSVCRT_AVAILABLE = True
+except Exception:
+    msvcrt = None
+    _MSVCRT_AVAILABLE = False
 
 # Load telescope movement limits from configuration
 ALTITUDE_LIMITS = config.get('altitude_limits', [-75, 75])
 AZIMUTH_LIMITS = config.get('azimuth_limits', [25, 355])
 PING_RA_DEC = config.get('celestial_ping_time', 3)
-MOVEMENT_TIMEOUT = 10  # Increased timeout for slower telescope movement
-POSITION_TOLERANCE = 0.01  # Tolerance in radians for checking if target is reached
+MOVEMENT_TIMEOUT = config.get('movement_timeout', 10)
+POSITION_TOLERANCE = config.get('position_tolerance', 0.01)
+FORCE_FIRST_CLOCKWISE = config.get('force_first_movement_clockwise', False)
+HEADLESS_TRACKING = config.get('headless_tracking', False)
+TRACKING_IN_BACKGROUND = config.get('tracking_in_background', False)
 
 # Global variables for telescope connection to CoppeliaSim and movement tracking
 clientID = None
 is_first_movement = True  # Flag to track if this is the first movement after simulation start
+_tracking_thread = None
+_tracking_stop_event = threading.Event()
+
+def _assert_sim_lib_loaded():
+    if getattr(sim, 'libsimx', None) is None:
+        raise RuntimeError(
+            "CoppeliaSim remote API library is not loaded. Ensure 'remoteApi' is present next to sim.py "
+            "and matches your OS/architecture, then restart the program."
+        )
 
 def test_con() -> bool:
     """
@@ -25,6 +50,7 @@ def test_con() -> bool:
     """
     global clientID, is_first_movement
     try:
+        _assert_sim_lib_loaded()
         # Check if connection is not established or lost
         if clientID is None or sim.simxGetConnectionId(clientID) == -1:
             print("Connecting to telescope.")
@@ -55,6 +81,7 @@ def get_current_joint_position(joint_handle: int) -> float:
     """
     Get the current position of a joint in radians using direct ctypes call.
     """
+    _assert_sim_lib_loaded()
     position = ct.c_float()
     # Access the raw ctypes function from sim.py
     c_GetJointPosition = sim.c_GetJointPosition
@@ -107,17 +134,8 @@ def move_tel(alt: float, az: float):
         current_az = get_current_joint_position(baseJointHandle)
         print(f"DEBUG: Current Az: {math.degrees(current_az):.2f}°, Target Az: {az:.2f}°")
 
-        # Calculate azimuth difference
-        if is_first_movement:
-            # For first movement: ALWAYS go clockwise regardless of shortest path
-            if az_rad >= current_az:
-                clockwise_distance = az_rad - current_az
-            else:
-                clockwise_distance = (2 * math.pi) - (current_az - az_rad)
-            target_az = current_az - clockwise_distance  # CoppeliaSim uses inverted coordinates
-            print(f"DEBUG: First movement CLOCKWISE - Distance: -{math.degrees(clockwise_distance):.2f}°, Target Az: {math.degrees(target_az):.2f}°")
-            is_first_movement = False
-        else:
+        # Calculate azimuth movement
+        if not is_first_movement or not FORCE_FIRST_CLOCKWISE:
             current_az_degrees = -math.degrees(current_az) % 360
             target_az_degrees = az
             print(f"DEBUG: Converted current: {current_az_degrees:.2f}°, target: {target_az_degrees:.2f}°")
@@ -132,6 +150,15 @@ def move_tel(alt: float, az: float):
             print(f"DEBUG: Direction: {direction}, Raw diff: {diff:.2f}°")
             target_az = -math.radians(target_az_degrees)
             print(f"DEBUG: Subsequent movement - Moving {direction} to {target_az_degrees}°, Target Az: {math.degrees(target_az):.2f}°")
+        else:
+            # For first movement: optionally force clockwise regardless of shortest path
+            if az_rad >= current_az:
+                clockwise_distance = az_rad - current_az
+            else:
+                clockwise_distance = (2 * math.pi) - (current_az - az_rad)
+            target_az = current_az - clockwise_distance  # CoppeliaSim uses inverted coordinates
+            print(f"DEBUG: First movement CLOCKWISE - Distance: -{math.degrees(clockwise_distance):.2f}°, Target Az: {math.degrees(target_az):.2f}°")
+            is_first_movement = False
 
         # Start simulation if not already running
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
@@ -191,20 +218,35 @@ def telescope_rest(username: str):
         FH.write_log(username, "Rest Mode", "error", f"Failed to enter rest mode: {e}")
         print(f"Error entering rest mode: {e}")
 
-def track_celestial_object(code: str):
-    """
-    Continuously track a celestial object by code, updating telescope position.
-    Press 'q' to stop tracking.
-    """
+def _is_stop_requested() -> bool:
+    if HEADLESS_TRACKING:
+        return False
     try:
-        while True:
+        if _KEYBOARD_AVAILABLE and (keyboard.is_pressed('q') or keyboard.is_pressed('Q')):
+            return True
+    except Exception:
+        pass
+    if _MSVCRT_AVAILABLE:
+        try:
+            if msvcrt.kbhit():
+                ch = msvcrt.getch()
+                if ch in (b'q', b'Q'):
+                    return True
+        except Exception:
+            pass
+    return False
+
+def _tracking_loop(code: str):
+    try:
+        while not _tracking_stop_event.is_set():
             start_time = time.time()
-            # Wait for the configured ping interval or until 'q' is pressed
+            # Wait for the configured ping interval or until stop requested
             while time.time() - start_time < PING_RA_DEC:
-                if keyboard.is_pressed('q') or keyboard.is_pressed('Q'):
+                if _tracking_stop_event.is_set() or _is_stop_requested():
                     print("Stopping tracking...")
                     telescope_rest("system")
                     FH.write_log("system", "Tracking", "success", "Stopped tracking celestial object.")
+                    _tracking_stop_event.set()
                     return
                 time.sleep(0.1)
             # Get celestial object details and convert to Alt/Az
@@ -234,6 +276,29 @@ def track_celestial_object(code: str):
     except Exception as e:
         FH.write_log("system", "Tracking", "error", f"Error occurred during tracking: {e}")
         print(f"Error occurred during tracking: {e}")
+
+def track_celestial_object(code: str):
+    """
+    Continuously track a celestial object by code. Optional background thread.
+    """
+    if TRACKING_IN_BACKGROUND:
+        global _tracking_thread
+        if _tracking_thread and _tracking_thread.is_alive():
+            print("Tracking already in progress.")
+            return
+        _tracking_stop_event.clear()
+        _tracking_thread = threading.Thread(target=_tracking_loop, args=(code,), daemon=True)
+        _tracking_thread.start()
+        print("Tracking started in background.")
+        return
+    else:
+        _tracking_stop_event.clear()
+        _tracking_loop(code)
+
+def stop_tracking():
+    _tracking_stop_event.set()
+    if _tracking_thread and _tracking_thread.is_alive():
+        _tracking_thread.join(timeout=2)
 
 def close():
     """
