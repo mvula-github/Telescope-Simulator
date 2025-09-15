@@ -12,6 +12,7 @@
     "hourangle",
     "icrs",
     "ipac",
+    "jsonify",
     "latlng",
     "levelname",
     "loguru",

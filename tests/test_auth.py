@@ -31,7 +31,7 @@ class TestAuthentication(unittest.TestCase):
             self.username: {
                 "id": self.user_id,
                 "username": self.username,
-                "password_hash": self.hashed_password
+                "password": self.hashed_password
             }
         }
 
@@ -63,19 +63,19 @@ class TestAuthentication(unittest.TestCase):
 
     def test_authenticate_user_success(self):
         # Test successful authentication returns a token and no error
-        token, error = authenticate_user(self.username, self.password, self.username)
+        token, error = authenticate_user(self.username, self.password, self.getUsername)
         self.assertIsNotNone(token)
         self.assertIsNone(error)
 
     def test_authenticate_user_wrong_password(self):
         # Test authentication fails with wrong password
-        token, error = authenticate_user(self.username, "wrongPassword", self.username)
+        token, error = authenticate_user(self.username, "wrongPassword", self.getUsername)
         self.assertIsNone(token)
         self.assertEqual(error, "Invalid password")
 
     def test_authenticate_user_unknown_username(self):
         # Test authentication fails with unknown username
-        token, error = authenticate_user("unknown", self.password, self.username)
+        token, error = authenticate_user("unknown", self.password, self.getUsername)
         self.assertIsNone(token)
         self.assertEqual(error, "User not found")
 

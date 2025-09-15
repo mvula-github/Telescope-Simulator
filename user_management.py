@@ -29,7 +29,65 @@ except RuntimeError as e:
     print(f"Error: {e}")
     users_collection = None
 
-# Create a new user
+# Service-layer, non-interactive helpers
+def create_user_service(username: str, password: str, role: str, name: str, surname: str):
+    if not users_collection:
+        raise RuntimeError("Database not initialized.")
+    if role not in ['admin', 'operator']:
+        raise ValueError("Invalid role. Must be 'admin' or 'operator'.")
+    if users_collection.find_one({"username": username}):
+        raise ValueError("Username already exists.")
+    hashed_password = generate_password_hash(password)
+    user_data = {
+        'name': name,
+        'surname': surname,
+        'username': username,
+        'password': hashed_password,
+        'role': role,
+        'created_at': datetime.now(),
+        'updated_at': datetime.now()
+    }
+    users_collection.insert_one(user_data)
+    FH.write_log("admin", "Create User", "success", f"Created user '{username}' with role '{role}'")
+    return True
+
+def list_users_service():
+    if not users_collection:
+        raise RuntimeError("Database not initialized.")
+    return list(users_collection.find({}, {"password": 0}))
+
+def update_user_service(username: str, name: str = None, surname: str = None, role: str = None, password: str = None):
+    if not users_collection:
+        raise RuntimeError("Database not initialized.")
+    update_data = { 'updated_at': datetime.now() }
+    if name is not None:
+        update_data['name'] = name
+    if surname is not None:
+        update_data['surname'] = surname
+    if role is not None:
+        if role not in ['admin', 'operator']:
+            raise ValueError("Invalid role. Must be 'admin' or 'operator'.")
+        update_data['role'] = role
+    if password:
+        update_data['password'] = generate_password_hash(password)
+    if len(update_data.keys()) == 1:
+        return False
+    res = users_collection.update_one({"username": username}, {"$set": update_data})
+    if res.matched_count == 0:
+        raise ValueError("User not found")
+    FH.write_log("admin", "Update User", "success", f"Updated user '{username}'")
+    return True
+
+def delete_user_service(username: str):
+    if not users_collection:
+        raise RuntimeError("Database not initialized.")
+    res = users_collection.delete_one({"username": username})
+    if res.deleted_count == 0:
+        raise ValueError("User not found")
+    FH.write_log("admin", "Delete User", "success", f"Deleted user '{username}'")
+    return True
+
+# Create a new user (interactive)
 def create_user():
     if not users_collection:
         print("Database not initialized.")
@@ -60,7 +118,7 @@ def create_user():
         print(f"Error creating user: {e}")
         FH.write_log("admin", "Create User", "error", f"Failed to create user: {e}")
 
-# List all users
+# List all users (interactive)
 def list_users():
     if not users_collection:
         print("Database not initialized.")
@@ -75,7 +133,7 @@ def list_users():
         print(f"Error listing users: {e}")
         FH.write_log("admin", "List Users", "error", f"Failed to list users: {e}")
 
-# Update an existing user
+# Update an existing user (interactive)
 def update_user():
     if not users_collection:
         print("Database not initialized.")
@@ -110,7 +168,7 @@ def update_user():
         print(f"Error updating user: {e}")
         FH.write_log("admin", "Update User", "error", f"Failed to update user: {e}")
 
-# Delete an existing user
+# Delete an existing user (interactive)
 def delete_user():
     if not users_collection:
         print("Database not initialized.")
