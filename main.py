@@ -380,14 +380,16 @@ def get_valid_ra_dec() -> Tuple[str, str]:
         except ValueError as e:
             print(f"Validation error: {e}. Please try again.\n")
 
-# Validate RA/Dec format with regex
+# Validate RA/Dec format flexibly to match Calculations.convert_radec_to_degrees
 def ra_dec_input_validation(ra: str, dec: str) -> bool:
-    ra_pattern = r"^\d{1,2}h\d{1,2}m\d{1,2}(\.\d+)?s$"
-    dec_pattern = r"^[+-]?\d{1,2}d\d{1,2}m\d{1,2}(\.\d+)?s$"
-    if not re.match(ra_pattern, ra):
-        raise ValueError("RA must be in the format 'hhmmss', e.g., '00h42m30s'.")
-    if not re.match(dec_pattern, dec):
-        raise ValueError("Dec must be in the format '+/-ddmmss', e.g., '+41d12m00s'.")
+    # Accept common string formats like '00h42m30s', '+41d12m00s', or decimal strings
+    hms_regex = r"^\s*\d{1,2}h\d{1,2}m\d{1,2}(\.\d+)?s\s*$"
+    dms_regex = r"^\s*[+-]?\d{1,2}d\d{1,2}m\d{1,2}(\.\d+)?s\s*$"
+    decimal_regex = r"^\s*[+-]?\d+(\.\d+)?\s*$"
+    ra_ok = bool(re.match(hms_regex, ra) or re.match(decimal_regex, ra))
+    dec_ok = bool(re.match(dms_regex, dec) or re.match(decimal_regex, dec))
+    if not ra_ok or not dec_ok:
+        raise ValueError("Invalid RA/Dec. Accepts 'hhmmss'/'ddmmss' or decimal values.")
     return True
 
 # Get validated celestial code with input loop

@@ -86,7 +86,7 @@ def write_log(user: str, command: str, level: str, description: str):
     }
     try:
         if collection is None:
-            raise RuntimeError("MongoDB not initialized. Cannot write log.")
+            raise RuntimeError("MongoDB not initialized. Call init_mongodb() before logging.")
         collection.insert_one(log_entry)
     except PyMongoError as e:
         print(f"Error: Failed to write log to MongoDB: {e}")
@@ -118,18 +118,11 @@ def display_logs():
                 log['description']
             ])
 
-        # Print logs grouped by level
+        # Print logs grouped by level using tabulate
         for level, entries in sorted(levels.items()):
             print(f"\n{level.upper()} Logs:")
-            print("-" * 100)
-            print(f"{'Timestamp':<20} {'User':<15} {'Command':<20} {'Description':<40}")
-            print("-" * 100)
-
-            for entry in entries:
-                timestamp, user, command, description = entry
-                print(f"{timestamp:<20} {user:<15} {command:<20} {description:<40}")
-
-            print("-" * 100)
+            headers = ["Timestamp", "User", "Command", "Description"]
+            print(tabulate(entries, headers=headers, tablefmt="github"))
 
     except PyMongoError as e:
         print(f"Error: Failed to fetch logs from MongoDB: {e}")

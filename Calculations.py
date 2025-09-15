@@ -10,34 +10,44 @@ from System_Config import config
 
 logging.basicConfig(level=logging.INFO)
 
+_cached_ip_location = None  # (lat, lon, elevation)
+
 def get_location_and_elevation(method='stored'):
     """
     Returns (latitude, longitude, elevation) using either stored config or IP-based lookup.
     """
     latitude, longitude, elevation = None, None, None
-    retries = 3
-    delay = 3
+    retries = int(config.get('elevation_retries', 3))
+    delay = float(config.get('elevation_retry_delay', 3))
+    timeout = float(config.get('elevation_timeout', 5))
 
     if method == 'ip':
+        global _cached_ip_location
+        if _cached_ip_location is not None:
+            return _cached_ip_location
         g = geocoder.ip('me')
         if g.ok:
             latitude, longitude = g.latlng
+            current_delay = delay
             for attempt in range(retries):
                 try:
                     response = requests.get(
-                        f'https://api.open-elevation.com/api/v1/lookup?locations={latitude},{longitude}'
+                        f'https://api.open-elevation.com/api/v1/lookup?locations={latitude},{longitude}',
+                        timeout=timeout
                     )
                     response.raise_for_status()
                     elevation_data = response.json()
                     if 'results' in elevation_data and elevation_data['results']:
                         elevation = elevation_data['results'][0]['elevation']
+                        _cached_ip_location = (latitude, longitude, elevation)
                         break
                     else:
                         logging.warning("No elevation data found in the response.")
                 except requests.RequestException as e:
                     logging.warning(f"Attempt {attempt + 1} failed: {e}")
                     if attempt < retries - 1:
-                        time.sleep(delay)
+                        time.sleep(current_delay)
+                        current_delay *= 2
             else:
                 logging.error("Failed to fetch elevation data after retries.")
         else:
@@ -88,7 +98,7 @@ def list_available_celestial_objects(ra, dec, radius=0.1):
     except Exception as e:
         logging.error(f"Error querying region: {e}")
 
-def convert_altaz_to_radec(alt, az):
+def convert_altaz_to_radec(alt, az, at_time: Time = None):
     """
     Converts Alt/Az to RA/Dec for the current location and time.
     """
@@ -99,7 +109,7 @@ def convert_altaz_to_radec(alt, az):
     if not (0 <= az <= 360):
         raise ValueError("Azimuth 'az' must be between 0 and 360 degrees.")
 
-    now = Time.now()
+    now = at_time or Time.now()
     latitude, longitude, elevation = get_location_and_elevation()
     if None in (latitude, longitude, elevation):
         raise ValueError("Could not retrieve location or elevation data.")
@@ -128,7 +138,7 @@ def convert_radec_to_degrees(ra, dec=None, frame='icrs'):
 
     return icrs_coords.ra.degree, icrs_coords.dec.degree
 
-def convert_radec_to_altaz(ra, dec):
+def convert_radec_to_altaz(ra, dec, at_time: Time = None):
     """
     Converts RA/Dec to Alt/Az for the current location and time.
     """
@@ -140,7 +150,7 @@ def convert_radec_to_altaz(ra, dec):
     except ValueError as ve:
         raise ValueError(f"RA/Dec conversion error: {ve}")
 
-    now = Time.now()
+    now = at_time or Time.now()
     latitude, longitude, elevation = get_location_and_elevation()
     if None in (latitude, longitude, elevation):
         raise ValueError("Could not retrieve location or elevation data.")
