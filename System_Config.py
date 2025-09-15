@@ -2,13 +2,10 @@ import json
 import os
 import logging
 
-logging.basicConfig(level=logging.INFO)
-import logging
-
 # Path to the configuration file (JSON format)
 CONFIG_FILE = os.path.join("Resources", "config.json")
 
-class config:
+class AppConfig:
     """
     Handles loading, saving, updating, and validating configuration from a JSON file.
     Provides methods to interact with configuration data for the telescope simulator.
@@ -29,7 +26,6 @@ class config:
         except json.JSONDecodeError as e:
             # If JSON is invalid, use an empty config
             logging.error(f"Error decoding JSON configuration: {e}")
-            return {}
             return {}
 
     def get(self, key, default=None):
@@ -71,7 +67,4 @@ class config:
         return True
 
 # Instantiate a single config object for use throughout the application
-config = config()
-
-# Configure logging for the module (optional: adjust level/format as needed)
-logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
+config = AppConfig()
