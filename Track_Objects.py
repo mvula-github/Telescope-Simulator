@@ -18,10 +18,22 @@ except PyMongoError as e:
     print(f"Error: Failed to connect to MongoDB for Astronomical Objects: {e}")
     objects_collection = None
 
+def _parse_ra_dec(ra_dec: str):
+    try:
+        if not ra_dec:
+            return None, None
+        ra_str, dec_str = ra_dec.split(',')
+        ra = float(ra_str.strip())
+        dec = float(dec_str.strip())
+        return ra, dec
+    except Exception:
+        return None, None
+
 def create_object(user_id: str, name: str, description: str, ra_dec: str, ned_code: str):
     if objects_collection is None:
         print("Database not initialized.")
         return
+    ra_val, dec_val = _parse_ra_dec(ra_dec)
     obj = {
         "user_id": user_id,
         "name": name,
@@ -32,27 +44,31 @@ def create_object(user_id: str, name: str, description: str, ra_dec: str, ned_co
         "updated_at": datetime.now(),
         "tracking": False
     }
+    if ra_val is not None and dec_val is not None:
+        obj["ra"] = ra_val
+        obj["dec"] = dec_val
     try:
         objects_collection.insert_one(obj)
         print(f"Astronomical object '{name}' created.")
     except PyMongoError as e:
         print(f"Error creating object: {e}")
 
-def list_objects(user_id: str):
+def list_objects(user_id: str = None, role: str = 'operator'):
     if objects_collection is None:
         print("Database not initialized.")
         return
     try:
-        objs = list(objects_collection.find({"user_id": user_id}))
+        query = {} if role == 'admin' else {"user_id": user_id}
+        objs = list(objects_collection.find(query))
         if not objs:
             print("No astronomical objects found.")
             return
         for obj in objs:
-            print(f"Name: {obj['name']}, Description: {obj['description']}, RA/Dec: {obj['ra_dec']}, NED Code: {obj['ned_code']}, User ID: {obj['user_id']}")
+            print(f"Name: {obj['name']}, Description: {obj['description']}, RA/Dec: {obj.get('ra_dec','')}, NED Code: {obj['ned_code']}, User ID: {obj['user_id']}")
     except PyMongoError as e:
         print(f"Error listing objects: {e}")
 
-def update_object(name: str, description: str = None, ra_dec: str = None, ned_code: str = None):
+def update_object(name: str, description: str = None, ra_dec: str = None, ned_code: str = None, user_id: str = None, role: str = 'operator'):
     if objects_collection is None:
         print("Database not initialized.")
         return
@@ -61,10 +77,17 @@ def update_object(name: str, description: str = None, ra_dec: str = None, ned_co
         update_data["description"] = description
     if ra_dec is not None:
         update_data["ra_dec"] = ra_dec
+        ra_val, dec_val = _parse_ra_dec(ra_dec)
+        if ra_val is not None and dec_val is not None:
+            update_data["ra"] = ra_val
+            update_data["dec"] = dec_val
     if ned_code is not None:
         update_data["ned_code"] = ned_code
     try:
-        result = objects_collection.update_one({"name": name}, {"$set": update_data})
+        filter_query = {"name": name}
+        if role != 'admin' and user_id is not None:
+            filter_query["user_id"] = user_id
+        result = objects_collection.update_one(filter_query, {"$set": update_data})
         if result.matched_count:
             print(f"Astronomical object '{name}' updated.")
         else:
@@ -72,12 +95,15 @@ def update_object(name: str, description: str = None, ra_dec: str = None, ned_co
     except PyMongoError as e:
         print(f"Error updating object: {e}")
 
-def delete_object(name: str):
+def delete_object(name: str, user_id: str = None, role: str = 'operator'):
     if objects_collection is None:
         print("Database not initialized.")
         return
     try:
-        result = objects_collection.delete_one({"name": name})
+        filter_query = {"name": name}
+        if role != 'admin' and user_id is not None:
+            filter_query["user_id"] = user_id
+        result = objects_collection.delete_one(filter_query)
         if result.deleted_count:
             print(f"Astronomical object '{name}' deleted.")
         else:

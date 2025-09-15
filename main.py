@@ -234,7 +234,9 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
             print("Database not initialized.")
             return Menu.TELESCOPE
         try:
-            objs = list(objects_collection.find())
+            # Admins see all; operators see only their own
+            query = {} if role == 'admin' else {'user_id': str(user['_id'])}
+            objs = list(objects_collection.find(query))
             if not objs:
                 print("No astronomical objects found.")
                 return Menu.TELESCOPE
@@ -257,9 +259,14 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print(f"RA/Dec: {obj['ra_dec']}")
                 print(f"NED Code: {obj['ned_code']}")
                 try:
-                    ra_str, dec_str = obj['ra_dec'].split(',')
-                    ra = float(ra_str.strip())
-                    dec = float(dec_str.strip())
+                    # Prefer stored numeric RA/Dec if available
+                    if 'ra' in obj and 'dec' in obj:
+                        ra = float(obj['ra'])
+                        dec = float(obj['dec'])
+                    else:
+                        ra_str, dec_str = obj['ra_dec'].split(',')
+                        ra = float(ra_str.strip())
+                        dec = float(dec_str.strip())
                     alt, az = C.convert_radec_to_altaz(ra, dec)
                     TM.move_tel(alt, az)
                     print(f"Telescope pointed to {obj['name']} (RA: {ra}, Dec: {dec})")
@@ -284,7 +291,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
             create_object(str(user['_id']), name, description, ra_dec, ned_code)
         elif choice == 2:
             # List Objects
-            list_objects(str(user['_id']))
+            list_objects(str(user['_id']), role)
         elif choice == 3:
             # Update Object
             name = input("Enter the name of the object to update: ")
@@ -299,14 +306,14 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
             if description: kwargs['description'] = description
             if ra_dec: kwargs['ra_dec'] = ra_dec
             if ned_code: kwargs['ned_code'] = ned_code
-            update_object(name, **kwargs)
+            update_object(name, user_id=str(user['_id']), role=role, **kwargs)
         elif choice == 4:
             # Delete Object
             name = input("Enter the name of the object to delete: ")
             if not name:
                 print("Object name is required.")
                 return None
-            delete_object(name)
+            delete_object(name, user_id=str(user['_id']), role=role)
         elif choice == 5:
             return Menu.MAIN
         return None
