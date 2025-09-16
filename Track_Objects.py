@@ -64,7 +64,7 @@ def list_objects(user_id: str = None, role: str = 'operator'):
             print("No astronomical objects found.")
             return
         for obj in objs:
-            print(f"Name: {obj['name']}, Description: {obj['description']}, RA/Dec: {obj.get('ra_dec','')}, NED Code: {obj['ned_code']}, User ID: {obj['user_id']}")
+            print(f"Name: {obj['name']}, Description: {obj['description']}, RA/Dec: {obj.get('ra_dec','')}, NED Code: {obj['ned_code']}, User ID: {obj.get('user_id', 'N/A')}")
     except PyMongoError as e:
         print(f"Error listing objects: {e}")
 

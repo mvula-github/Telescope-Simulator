@@ -125,7 +125,11 @@ def convert_radec_to_degrees(ra, dec=None, frame='icrs'):
     Converts RA/Dec in various formats to degrees.
     """
     if isinstance(ra, (float, int)) and isinstance(dec, (float, int)):
-        icrs_coords = SkyCoord(ra, dec, frame=frame, unit='deg')
+        # If RA looks like hours (0..24), interpret as hourangle; otherwise degrees
+        if 0.0 <= ra <= 24.0 and -90.0 <= dec <= 90.0:
+            icrs_coords = SkyCoord(ra, dec, frame=frame, unit=(u.hourangle, u.deg))
+        else:
+            icrs_coords = SkyCoord(ra, dec, frame=frame, unit='deg')
     elif isinstance(ra, str) and isinstance(dec, str):
         if "h" in ra or "d" in dec:
             icrs_coords = SkyCoord(ra, dec, frame=frame)
