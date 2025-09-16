@@ -8,7 +8,6 @@ from astropy.time import Time
 from astroquery.ipac.ned import Ned
 from System_Config import config
 
-logging.basicConfig(level=logging.INFO)
 
 _cached_ip_location = None  # (lat, lon, elevation)
 

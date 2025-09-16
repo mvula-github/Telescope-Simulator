@@ -22,12 +22,6 @@ except PyMongoError as e:
     print(f"Error: Failed to connect to MongoDB for Users collection: {e}")
     users_collection = None
 
-# Initialize MongoDB
-try:
-    FH.init_mongodb()
-except RuntimeError as e:
-    print(f"Error: {e}")
-    users_collection = None
 
 # Service-layer, non-interactive helpers
 def create_user_service(username: str, password: str, role: str, name: str, surname: str):
