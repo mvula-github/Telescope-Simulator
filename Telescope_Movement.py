@@ -20,15 +20,25 @@ except Exception:
     msvcrt = None
     _MSVCRT_AVAILABLE = False
 
-# Load telescope movement limits from configuration
-ALTITUDE_LIMITS = config.get('altitude_limits', [-75, 75])
-AZIMUTH_LIMITS = config.get('azimuth_limits', [25, 355])
+# Load static settings from configuration (limits read dynamically via accessors below)
 PING_RA_DEC = config.get('celestial_ping_time', 3)
 MOVEMENT_TIMEOUT = config.get('movement_timeout', 10)
 POSITION_TOLERANCE = config.get('position_tolerance', 0.01)
 FORCE_FIRST_CLOCKWISE = config.get('force_first_movement_clockwise', False)
 HEADLESS_TRACKING = config.get('headless_tracking', False)
 TRACKING_IN_BACKGROUND = config.get('tracking_in_background', False)
+
+def _get_altitude_limits():
+    limits = config.get('altitude_limits', [-75, 75])
+    if not isinstance(limits, (list, tuple)) or len(limits) != 2:
+        return [-75, 75]
+    return [float(limits[0]), float(limits[1])]
+
+def _get_azimuth_limits():
+    limits = config.get('azimuth_limits', [25, 355])
+    if not isinstance(limits, (list, tuple)) or len(limits) != 2:
+        return [25, 355]
+    return [float(limits[0]), float(limits[1])]
 
 # Global variables for telescope connection to CoppeliaSim and movement tracking
 clientID = None
@@ -75,7 +85,19 @@ def check_limits(alt: float, az: float) -> bool:
     """
     Check if the given altitude and azimuth are within the telescope's movement limits.
     """
-    return ALTITUDE_LIMITS[0] <= alt <= ALTITUDE_LIMITS[1] and AZIMUTH_LIMITS[0] <= az <= AZIMUTH_LIMITS[1]
+    alt_limits = _get_altitude_limits()
+    az_limits = _get_azimuth_limits()
+    return alt_limits[0] <= alt <= alt_limits[1] and az_limits[0] <= az <= az_limits[1]
+
+def _clamp_to_limits(alt: float, az: float) -> (float, float):
+    alt_limits = _get_altitude_limits()
+    az_limits = _get_azimuth_limits()
+    # Normalize azimuth to [0, 360)
+    az_norm = az % 360
+    # Clamp to configured window
+    clamped_alt = min(max(alt, alt_limits[0]), alt_limits[1])
+    clamped_az = min(max(az_norm, az_limits[0]), az_limits[1])
+    return clamped_alt, clamped_az
 
 def get_current_joint_position(joint_handle: int) -> float:
     """
@@ -117,7 +139,15 @@ def move_tel(alt: float, az: float):
     """
     global is_first_movement
     if not check_limits(alt, az):
-        raise ValueError(f"Out of limits: Alt={alt} (limits={ALTITUDE_LIMITS}), Az={az} (limits={AZIMUTH_LIMITS})")
+        clamp_enabled = bool(config.get('clamp_to_limits', True))
+        if clamp_enabled:
+            original_alt, original_az = alt, az
+            alt, az = _clamp_to_limits(alt, az)
+            print(f"Warning: Target clamped to limits. Alt: {original_alt}->{alt}, Az: {original_az}->{az}")
+        else:
+            alt_limits = _get_altitude_limits()
+            az_limits = _get_azimuth_limits()
+            raise ValueError(f"Out of limits: Alt={alt} (limits={alt_limits}), Az={az} (limits={az_limits})")
     try:
         if not test_con():
             raise RuntimeError("Connection failed")
