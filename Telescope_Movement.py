@@ -250,24 +250,43 @@ def _tracking_loop(code: str):
                     return
                 time.sleep(0.1)
             # Get celestial object details and convert to Alt/Az
+            
             _, name, ra, dec = C.get_celestial_object_details(code)
+
             alt, az = C.convert_radec_to_altaz(ra, dec)
+
+            # Check if object is below horizon
+            if alt < 0:
+                print(f"WARNING: Object {name} is below the horizon (Alt: {alt:.2f}°). Not visible.")
+                FH.write_log("system", "Tracking", "warning", 
+                            f"Celestial object {name} below horizon: Alt={alt:.2f}°, Az={az:.2f}°")
+                continue  # skip movement and wait for next cycle
+
+            # Otherwise, check normal movement limits
             if check_limits(alt, az):
-                print(f"Tracking Celestial Object -> NAME: {name}, CODE: {code}, RA: {ra:.3f} hours, Dec: {dec:.3f}°")
+                print(f"Tracking Celestial Object -> NAME: {name}, CODE: {code}, RA: {ra:.3f} hours, Dec: {dec:.3f}°") 
+
                 print(f"Telescope tracking Alt: {alt:.2f}°, Az: {az:.2f}°\nPress q to stop tracking.\n")
                 if test_con():
                     move_tel(alt, az)
-                    FH.write_log("system", "Track Celestial Object", "success", f"Started tracking celestial object -> NAME: {name}, CODE: {code}")
+                    FH.write_log("system", "Track Celestial Object", "success",
+                                f"Started tracking celestial object -> NAME: {name}, CODE: {code}")
                 else:
-                    FH.write_log("system", "Telescope Movement", "error", f"Failed to move telescope for object {name} (RA: {ra}, Dec: {dec})")
+                    FH.write_log("system", "Telescope Movement", "error",
+                                f"Failed to move telescope for object {name} (RA: {ra}, Dec: {dec})")
                     break
             else:
                 print(f"Target coordinates (RA: {ra:.3f} hours, Dec: {dec:.3f}°) -> Out of bounds!")
                 print(f"Coordinates (Alt: {alt:.2f}°, Az: {az:.2f}°) -> Stopping movement.")
-                FH.write_log("system", "Tracking", "warning", f"Celestial object out of bounds: Alt: {alt}, Az: {az}.")
+                FH.write_log("system", "Tracking", "warning",
+                            f"Celestial object out of bounds: Alt: {alt}, Az: {az}.")
                 if test_con():
                     telescope_rest("system")
                 break
+
+            #py -m pip install tabulate
+            #py -m pip install werkzeug
+
     except KeyboardInterrupt:
         FH.write_log("system", "Tracking", "warning", "Tracking interrupted by user.")
         if test_con():
