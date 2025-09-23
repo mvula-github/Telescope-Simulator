@@ -236,56 +236,36 @@ def _is_stop_requested() -> bool:
             pass
     return False
 
-def _tracking_loop(code: str):
-    try:
-        while not _tracking_stop_event.is_set():
-            start_time = time.time()
-            # Wait for the configured ping interval or until stop requested
-            while time.time() - start_time < PING_RA_DEC:
-                if _tracking_stop_event.is_set() or _is_stop_requested():
-                    print("Stopping tracking...")
-                    telescope_rest("system")
-                    FH.write_log("system", "Tracking", "success", "Stopped tracking celestial object.")
-                    _tracking_stop_event.set()
-                    return
-                time.sleep(0.1)
-            # Get celestial object details and convert to Alt/Az
-            
-            _, name, ra, dec = C.get_celestial_object_details(code)
+def move_tel(alt: float, az: float):
+    """
+    Move telescope to given Alt/Az coordinates.
+    Prevents moving below horizon.
+    """
+    # Check if object is below horizon
+    if alt < 0:
+        print(f"WARNING: Altitude {alt:.2f}° is below the horizon. Movement cancelled.")
+        FH.write_log("system", "Telescope Control", "warning",
+                     f"Attempted to move below horizon: Alt={alt:.2f}°, Az={az:.2f}°")
+        return False
 
-            alt, az = C.convert_radec_to_altaz(ra, dec)
+    # Check limits as usual
+    if not check_limits(alt, az):
+        print(f"Target coordinates Alt: {alt:.2f}°, Az: {az:.2f}° -> Out of bounds! Movement cancelled.")
+        FH.write_log("system", "Telescope Control", "warning",
+                     f"Out of bounds movement attempt: Alt={alt}, Az={az}")
+        return False
 
-            # Check if object is below horizon
-            if alt < 0:
-                print(f"WARNING: Object {name} is below the horizon (Alt: {alt:.2f}°). Not visible.")
-                FH.write_log("system", "Tracking", "warning", 
-                            f"Celestial object {name} below horizon: Alt={alt:.2f}°, Az={az:.2f}°")
-                continue  # skip movement and wait for next cycle
+    # If everything is fine, move telescope
+    print(f"Telescope moving to Alt: {alt:.2f}°, Az: {az:.2f}")
+    # --- Your motor/simulator move code here ---
+    FH.write_log("system", "Telescope Control", "success",
+                 f"Telescope moved to Alt={alt:.2f}°, Az={az:.2f}")
+    return True
 
-            # Otherwise, check normal movement limits
-            if check_limits(alt, az):
-                print(f"Tracking Celestial Object -> NAME: {name}, CODE: {code}, RA: {ra:.3f} hours, Dec: {dec:.3f}°") 
-
-                print(f"Telescope tracking Alt: {alt:.2f}°, Az: {az:.2f}°\nPress q to stop tracking.\n")
-                if test_con():
-                    move_tel(alt, az)
-                    FH.write_log("system", "Track Celestial Object", "success",
-                                f"Started tracking celestial object -> NAME: {name}, CODE: {code}")
-                else:
-                    FH.write_log("system", "Telescope Movement", "error",
-                                f"Failed to move telescope for object {name} (RA: {ra}, Dec: {dec})")
-                    break
-            else:
-                print(f"Target coordinates (RA: {ra:.3f} hours, Dec: {dec:.3f}°) -> Out of bounds!")
-                print(f"Coordinates (Alt: {alt:.2f}°, Az: {az:.2f}°) -> Stopping movement.")
-                FH.write_log("system", "Tracking", "warning",
-                            f"Celestial object out of bounds: Alt: {alt}, Az: {az}.")
-                if test_con():
-                    telescope_rest("system")
-                break
 
             #py -m pip install tabulate
             #py -m pip install werkzeug
+            #py -m pip install PyJWT
 
     except KeyboardInterrupt:
         FH.write_log("system", "Tracking", "warning", "Tracking interrupted by user.")
@@ -294,6 +274,7 @@ def _tracking_loop(code: str):
         print("Tracking stopped by user.")
     except Exception as e:
         FH.write_log("system", "Tracking", "error", f"Error occurred during tracking: {e}")
+
         print(f"Error occurred during tracking: {e}")
 
 def track_celestial_object(code: str):
@@ -306,9 +287,11 @@ def track_celestial_object(code: str):
             print("Tracking already in progress.")
             return
         _tracking_stop_event.clear()
-        _tracking_thread = threading.Thread(target=_tracking_loop, args=(code,), daemon=True)
+        _tracking_thread = threading.Thread(target=_tracking_loop, args=(code,), daemon=True) 
+
         _tracking_thread.start()
         print("Tracking started in background.")
+
         return
     else:
         _tracking_stop_event.clear()
