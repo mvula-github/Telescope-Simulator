@@ -43,6 +43,19 @@ def _assert_sim_lib_loaded():
             "and matches your OS/architecture, then restart the program."
         )
 
+def _is_valid_client() -> bool:
+    try:
+        return clientID is not None and isinstance(clientID, int) and clientID != -1 and sim.simxGetConnectionId(clientID) != -1
+    except Exception:
+        return False
+
+def _require_connection():
+    """
+    Ensure there is an active connection. Raises RuntimeError if not connected.
+    """
+    if not test_con() or not _is_valid_client():
+        raise RuntimeError("Telescope not connected. Start CoppeliaSim and the remote API server (port 19999).")
+
 def test_con() -> bool:
     """
     Test and (re)establish connection to CoppeliaSim telescope.
@@ -86,6 +99,8 @@ def get_current_joint_position(joint_handle: int) -> float:
     # Access the raw ctypes function from sim.py
     c_GetJointPosition = sim.c_GetJointPosition
     # Initialize streaming mode
+    if not _is_valid_client():
+        raise RuntimeError("No active CoppeliaSim connection.")
     ret = c_GetJointPosition(clientID, joint_handle, ct.byref(position), sim.simx_opmode_streaming)
     if ret == sim.simx_return_ok or ret == sim.simx_return_novalue_flag:
         time.sleep(0.05)  # Wait for streaming to initialize
@@ -119,12 +134,13 @@ def move_tel(alt: float, az: float):
     if not check_limits(alt, az):
         raise ValueError(f"Out of limits: Alt={alt} (limits={ALTITUDE_LIMITS}), Az={az} (limits={AZIMUTH_LIMITS})")
     try:
-        if not test_con():
-            raise RuntimeError("Connection failed")
+        _require_connection()
         
         # Get joint handles
-        baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
-        mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
+        ret_b, baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)
+        ret_m, mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)
+        if ret_b != sim.simx_return_ok or ret_m != sim.simx_return_ok:
+            raise RuntimeError(f"Failed to get joint handles (base ret={ret_b}, mount ret={ret_m}). Ensure scene is loaded and running.")
 
         # Convert to radians
         alt_rad = math.radians(alt)
@@ -187,10 +203,11 @@ def telescope_rest(username: str):
     """
     global clientID, is_first_movement
     try:
-        if not test_con():
-            raise RuntimeError("Connection failed")
-        baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
-        mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
+        _require_connection()
+        ret_b, baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)
+        ret_m, mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)
+        if ret_b != sim.simx_return_ok or ret_m != sim.simx_return_ok:
+            raise RuntimeError(f"Failed to get joint handles (base ret={ret_b}, mount ret={ret_m}). Ensure scene is loaded and running.")
         current_az = get_current_joint_position(baseJointHandle)
         current_az_degrees = -math.degrees(current_az) % 360
         print(f"DEBUG REST: Current Az: {current_az_degrees:.2f}°, Target: 0°")
@@ -210,8 +227,9 @@ def telescope_rest(username: str):
         else:
             print("Warning: Rest mode movement timed out.")
             FH.write_log(username, "Rest Mode", "warning", "Timeout entering rest mode.")
-        sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
-        sim.simxFinish(clientID)
+        if _is_valid_client():
+            sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
+            sim.simxFinish(clientID)
         clientID = None
         is_first_movement = True  # Reset for next connection
     except Exception as e:
