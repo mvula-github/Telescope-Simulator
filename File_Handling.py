@@ -30,10 +30,17 @@ def init_mongodb():
         print("MongoDB connected successfully.")
     except ConnectionFailure as e:
         print(f"Error: MongoDB connection failed: {e}. Ensure MONGO_URI is correct and MongoDB is accessible.")
-        raise RuntimeError(f"MongoDB connection failed: {e}")
+        # Degrade gracefully; leave collection as None and continue
+        client = None
+        db = None
+        collection = None
+        return
     except PyMongoError as e:
         print(f"Error: MongoDB initialization error: {e}")
-        raise RuntimeError(f"MongoDB initialization error: {e}")
+        client = None
+        db = None
+        collection = None
+        return
 
 def get_script_path() -> str:
     """Returns the directory path of the current script."""
@@ -86,11 +93,15 @@ def write_log(user: str, command: str, level: str, description: str):
     }
     try:
         if collection is None:
-            raise RuntimeError("MongoDB not initialized. Call init_mongodb() before logging.")
+            # Graceful degrade: print to console
+            print(f"[LOG {log_entry['level'].upper()}] {log_entry['timestamp']} {user} {command} - {description}")
+            return
         collection.insert_one(log_entry)
     except PyMongoError as e:
         print(f"Error: Failed to write log to MongoDB: {e}")
-        raise RuntimeError(f"Failed to write log to MongoDB: {e}")
+        # Degrade gracefully to console
+        print(f"[LOG {log_entry['level'].upper()}] {log_entry['timestamp']} {user} {command} - {description}")
+        return
 
 def display_logs():
     """
@@ -98,7 +109,8 @@ def display_logs():
     """
     try:
         if collection is None:
-            raise RuntimeError("MongoDB not initialized. Cannot display logs.")
+            print("MongoDB not initialized. Cannot display logs.")
+            return
 
         logs = list(collection.find().sort('timestamp', -1).limit(100))
         if not logs:

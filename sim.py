@@ -40,7 +40,12 @@ except Exception as e:
     print('----------------------------------------------------')
     libsimx = None
 
+def _require_lib():
+    if libsimx is None:
+        raise RuntimeError('remoteApi library not loaded. Place remoteApi.* next to sim.py for your OS/arch.')
+
 #ctypes wrapper prototypes
+_require_lib()
 c_GetJointPosition          = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.POINTER(ct.c_float), ct.c_int32)(("simxGetJointPosition", libsimx))
 c_SetJointPosition          = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.c_float, ct.c_int32)(("simxSetJointPosition", libsimx))
 c_GetJointMatrix            = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.POINTER(ct.c_float), ct.c_int32)(("simxGetJointMatrix", libsimx))

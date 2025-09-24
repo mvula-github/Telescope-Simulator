@@ -27,6 +27,9 @@ POSITION_TOLERANCE = config.get('position_tolerance', 0.01)
 FORCE_FIRST_CLOCKWISE = config.get('force_first_movement_clockwise', False)
 HEADLESS_TRACKING = config.get('headless_tracking', False)
 TRACKING_IN_BACKGROUND = config.get('tracking_in_background', False)
+INVERT_ELEVATION_AXIS = bool(config.get('invert_elevation_axis', False))
+BASE_JOINT_NAME = config.get('base_joint_name', 'Base_joint')
+MOUNT_JOINT_NAME = config.get('mount_joint_name', 'Mount_joint')
 
 def _get_altitude_limits():
     limits = config.get('altitude_limits', [-75, 75])
@@ -153,11 +156,26 @@ def move_tel(alt: float, az: float):
             raise RuntimeError("Connection failed")
         
         # Get joint handles
-        baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
-        mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
+        baseJointHandle = sim.simxGetObjectHandle(clientID, BASE_JOINT_NAME, sim.simx_opmode_blocking)[1]
+        mountJointHandle = sim.simxGetObjectHandle(clientID, MOUNT_JOINT_NAME, sim.simx_opmode_blocking)[1]
+
+        # Ensure motors and position controllers are enabled and forces sufficient
+        try:
+            sim.simxSetObjectInt32Param(clientID, baseJointHandle, sim.sim_jointintparam_motor_enabled, 1, sim.simx_opmode_oneshot)
+            sim.simxSetObjectInt32Param(clientID, baseJointHandle, sim.sim_jointintparam_ctrl_enabled, 1, sim.simx_opmode_oneshot)
+            sim.simxSetJointMaxForce(clientID, baseJointHandle, float(config.get('base_max_force', 1000.0)), sim.simx_opmode_oneshot)
+
+            sim.simxSetObjectInt32Param(clientID, mountJointHandle, sim.sim_jointintparam_motor_enabled, 1, sim.simx_opmode_oneshot)
+            sim.simxSetObjectInt32Param(clientID, mountJointHandle, sim.sim_jointintparam_ctrl_enabled, 1, sim.simx_opmode_oneshot)
+            sim.simxSetJointMaxForce(clientID, mountJointHandle, float(config.get('elevation_max_force', 1500.0)), sim.simx_opmode_oneshot)
+        except Exception as _:
+            # Ignore parameter setting errors; continue with best effort
+            pass
 
         # Convert to radians
         alt_rad = math.radians(alt)
+        if INVERT_ELEVATION_AXIS:
+            alt_rad = -alt_rad
         az_rad = math.radians(az)
 
         # Get current azimuth
@@ -190,6 +208,13 @@ def move_tel(alt: float, az: float):
             print(f"DEBUG: First movement CLOCKWISE - Distance: -{math.degrees(clockwise_distance):.2f}°, Target Az: {math.degrees(target_az):.2f}°")
             is_first_movement = False
 
+        # Debug: Elevation joint current vs target
+        try:
+            current_alt_rad = get_current_joint_position(mountJointHandle)
+            print(f"DEBUG: Current Alt: {math.degrees(current_alt_rad):.2f}°, Target Alt: {math.degrees(alt_rad):.2f}° (invert={INVERT_ELEVATION_AXIS})")
+        except Exception:
+            pass
+
         # Start simulation if not already running
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, baseJointHandle, target_az, sim.simx_opmode_oneshot)
@@ -219,8 +244,8 @@ def telescope_rest(username: str):
     try:
         if not test_con():
             raise RuntimeError("Connection failed")
-        baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
-        mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
+        baseJointHandle = sim.simxGetObjectHandle(clientID, BASE_JOINT_NAME, sim.simx_opmode_blocking)[1]
+        mountJointHandle = sim.simxGetObjectHandle(clientID, MOUNT_JOINT_NAME, sim.simx_opmode_blocking)[1]
         current_az = get_current_joint_position(baseJointHandle)
         current_az_degrees = -math.degrees(current_az) % 360
         print(f"DEBUG REST: Current Az: {current_az_degrees:.2f}°, Target: 0°")

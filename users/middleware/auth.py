@@ -9,15 +9,18 @@ import os
 load_dotenv()
 
 # --- Configuration (should use environment variables in production) ---
-SECRET_KEY = os.getenv("SECRET_KEY")
+# Make SECRET_KEY lookup lazy to avoid import-time failures in CLI/tests
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 try:
     TOKEN_EXPIRY_HOURS = int(os.getenv("TOKEN_EXPIRY_HOURS", "24"))
 except ValueError:
     TOKEN_EXPIRY_HOURS = 24
 
-if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY is not set. Define SECRET_KEY in your environment or .env file.")
+def _get_secret_key():
+    key = os.getenv("SECRET_KEY")
+    if not key:
+        raise RuntimeError("SECRET_KEY is not set. Define SECRET_KEY in your environment or .env file.")
+    return key
 
 def generate_jwt(user_id):
     """
@@ -28,7 +31,8 @@ def generate_jwt(user_id):
         'user_id': user_id,
         'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=TOKEN_EXPIRY_HOURS)
     }
-    token = jwt.encode(payload, SECRET_KEY, algorithm=JWT_ALGORITHM)
+    secret = _get_secret_key()
+    token = jwt.encode(payload, secret, algorithm=JWT_ALGORITHM)
     return token
 
 def verify_jwt(token):
@@ -37,7 +41,8 @@ def verify_jwt(token):
     Returns (payload, None) if valid, (None, error_message) if not.
     """
     try:
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        secret = _get_secret_key()
+        decoded = jwt.decode(token, secret, algorithms=[JWT_ALGORITHM])
         return decoded, None
     except jwt.ExpiredSignatureError:
         return None, 'Token expired'

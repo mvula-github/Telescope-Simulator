@@ -1,4 +1,14 @@
 import unittest
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Ensure required env vars for tests BEFORE importing auth
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("JWT_ALGORITHM", "HS256")
+os.environ.setdefault("TOKEN_EXPIRY_HOURS", "24")
+
 from users.middleware.auth import (
     generate_jwt,
     verify_jwt,
@@ -8,15 +18,7 @@ from users.middleware.auth import (
 from werkzeug.security import generate_password_hash
 import jwt
 import time
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Ensure required env vars for tests
-os.environ.setdefault("SECRET_KEY", "test-secret-key")
-os.environ.setdefault("JWT_ALGORITHM", "HS256")
-os.environ.setdefault("TOKEN_EXPIRY_HOURS", "24")
 SECRET_KEY = os.getenv("SECRET_KEY") 
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 

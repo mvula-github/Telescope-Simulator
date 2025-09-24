@@ -478,12 +478,13 @@ def get_valid_alt_az() -> Tuple[float, float]:
 def alt_az_input_validation(alt: float, az: float) -> bool:
     if not isinstance(alt, (float, int)) or not isinstance(az, (float, int)):
         raise ValueError("Alt and Az must be numbers")
-    if not (-75 <= alt <= 75):
-        raise ValueError("Alt must be between -75 and 75 degrees")
-    if not (25 <= az <= 355):
-        raise ValueError("Az must be between 25 and 355 degrees")
+    # Use configured limits for validation
     alt_limits = config.get('altitude_limits', [-75, 75])
     az_limits = config.get('azimuth_limits', [25, 355])
+    if not (alt_limits[0] <= alt <= alt_limits[1]):
+        raise ValueError(f"Alt must be between {alt_limits[0]} and {alt_limits[1]} degrees")
+    if not (az_limits[0] <= az <= az_limits[1]):
+        raise ValueError(f"Az must be between {az_limits[0]} and {az_limits[1]} degrees")
     if not (alt_limits[0] <= alt <= alt_limits[1]):
         raise ValueError(f"Alt out of custom limits: {alt_limits}")
     if not (az_limits[0] <= az <= az_limits[1]):
@@ -538,6 +539,34 @@ def main():
     try:
         # Initialize MongoDB logging backend
         FH.init_mongodb()
+        # Ensure configuration has required defaults
+        required_defaults = {
+            'latitude': 0.0,
+            'longitude': 0.0,
+            'elevation': 0.0,
+            'celestial_ping_time': 3,
+            'movement_timeout': 10,
+            'position_tolerance': 0.01,
+            'altitude_limits': [-75, 75],
+            'azimuth_limits': [25, 355],
+            'clamp_to_limits': True,
+            'invert_elevation_axis': False,
+            'force_first_movement_clockwise': False,
+            'tracking_in_background': False,
+            'headless_tracking': False,
+            'base_joint_name': 'Base_joint',
+            'mount_joint_name': 'Mount_joint',
+            'base_max_force': 1000.0,
+            'elevation_max_force': 1500.0,
+        }
+        changed = False
+        for k, v in required_defaults.items():
+            if config.get(k) is None:
+                config.update(k, v)
+                changed = True
+        # Optional: validate config and warn
+        if not config.validate():
+            logging.warning("Configuration missing keys; defaults were applied where needed.")
         # Ensure there is at least one admin user
         try:
             if users_collection is not None and not users_collection.find_one({"role": "admin"}):
