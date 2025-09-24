@@ -120,5 +120,7 @@ def authenticate_user(username, password, getUsername):
         else:
             return None, 'Password verification error'
 
-    token = generate_jwt(user['id'])          # Generate JWT
+    # Use username as the user identifier (since MongoDB uses _id, not id)
+    user_id = user.get('id') or user.get('username') or str(user.get('_id', ''))
+    token = generate_jwt(user_id)          # Generate JWT
     return token, None

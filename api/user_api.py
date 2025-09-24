@@ -4,7 +4,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 import os
-import File_Handling as FH
+import core.file_handling as FH
 from werkzeug.security import generate_password_hash
 
 

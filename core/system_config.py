@@ -31,6 +31,19 @@ class AppConfig:
     def get(self, key, default=None):
         """Get a configuration value by key. Returns default if key is missing."""
         return self._data.get(key, default)
+    
+    def has(self, key):
+        """Check if a configuration key exists."""
+        return key in self._data
+    
+    def set(self, key, value):
+        """Set a configuration value and save to file."""
+        self._data[key] = value
+        self._save_config()
+    
+    def save(self):
+        """Save the current configuration to file."""
+        self._save_config()
 
     def reload(self):
         """Reload the configuration from the file (refreshes _data)."""

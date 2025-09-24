@@ -6,7 +6,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord, EarthLocation, AltAz, ICRS
 from astropy.time import Time
 from astroquery.ipac.ned import Ned
-from System_Config import config
+from core.system_config import config
 
 
 _cached_ip_location = None  # (lat, lon, elevation)

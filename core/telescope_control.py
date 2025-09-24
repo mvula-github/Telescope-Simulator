@@ -1,9 +1,9 @@
 import time
 import math
-import File_Handling as FH
-from System_Config import config
-import sim
-import Calculations as C
+import core.file_handling as FH
+from core.system_config import config
+import simulation.sim_interface as sim
+import core.calculations as C
 import ctypes as ct  # Import ctypes for joint position retrieval
 import threading
 

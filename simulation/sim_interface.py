@@ -3,7 +3,7 @@ import struct
 import sys
 import os
 import ctypes as ct
-from simConst import *
+import simulation.sim_const as simConst
 
 # Improved: Robust library loading with clear error reporting and platform detection
 def _get_lib_extension():
@@ -45,8 +45,8 @@ def _require_lib():
         raise RuntimeError('remoteApi library not loaded. Place remoteApi.* next to sim.py for your OS/arch.')
 
 #ctypes wrapper prototypes
-_require_lib()
-c_GetJointPosition          = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.POINTER(ct.c_float), ct.c_int32)(("simxGetJointPosition", libsimx))
+# Note: Function definitions are created when library is loaded
+c_GetJointPosition = None
 c_SetJointPosition          = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.c_float, ct.c_int32)(("simxSetJointPosition", libsimx))
 c_GetJointMatrix            = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.POINTER(ct.c_float), ct.c_int32)(("simxGetJointMatrix", libsimx))
 c_SetSphericalJointMatrix   = ct.CFUNCTYPE(ct.c_int32,ct.c_int32, ct.c_int32, ct.POINTER(ct.c_float), ct.c_int32)(("simxSetSphericalJointMatrix", libsimx))
