@@ -35,9 +35,9 @@ SAFETY_ALT_MARGIN_DEG = float(config.get('safety_alt_margin_deg', 2.0))
 SAFETY_AZ_MARGIN_DEG = float(config.get('safety_az_margin_deg', 1.0))
 
 def _get_altitude_limits():
-    limits = config.get('altitude_limits', [-75, 75])
+    limits = config.get('altitude_limits', [0, 90])
     if not isinstance(limits, (list, tuple)) or len(limits) != 2:
-        return [-75, 75]
+        return [0, 90]
     return [float(limits[0]), float(limits[1])]
 
 def _get_azimuth_limits():
@@ -159,6 +159,12 @@ def move_tel(alt: float, az: float):
     Move the telescope to the specified altitude and azimuth without accumulation.
     """
     global is_first_movement
+    
+    # CRITICAL SAFETY CHECK: Prevent negative altitude (below horizon)
+    if alt < 0:
+        print(f"ERROR: Altitude {alt}° is below horizon! Clamping to 0° to prevent telescope damage.")
+        alt = 0.0
+    
     # Always clamp to effective limits if enabled, otherwise validate
     clamp_enabled = bool(config.get('clamp_to_limits', True))
     if clamp_enabled:
@@ -192,10 +198,13 @@ def move_tel(alt: float, az: float):
             # Ignore parameter setting errors; continue with best effort
             pass
 
-        # Convert to radians
-        alt_rad = math.radians(alt)
+        # Convert to radians - ensure 0°=horizontal, 90°=up
+        # If invert is needed, we need to map: 0°->90°, 90°->0° in CoppeliaSim coordinates
         if INVERT_ELEVATION_AXIS:
-            alt_rad = -alt_rad
+            # Map user input (0-90°) to CoppeliaSim coordinates (90-0°)
+            alt_rad = math.radians(90 - alt)
+        else:
+            alt_rad = math.radians(alt)
         az_rad = math.radians(az)
 
         # Get current azimuth
@@ -231,7 +240,12 @@ def move_tel(alt: float, az: float):
         # Debug: Elevation joint current vs target
         try:
             current_alt_rad = get_current_joint_position(mountJointHandle)
-            print(f"DEBUG: Current Alt: {math.degrees(current_alt_rad):.2f}°, Target Alt: {math.degrees(alt_rad):.2f}° (invert={INVERT_ELEVATION_AXIS})")
+            # Show user input altitude and CoppeliaSim target
+            if INVERT_ELEVATION_AXIS:
+                coppelia_target = 90 - alt
+                print(f"DEBUG: Current Alt: {math.degrees(current_alt_rad):.2f}°, User Input: {alt:.2f}°, CoppeliaSim Target: {coppelia_target:.2f}° (invert={INVERT_ELEVATION_AXIS})")
+            else:
+                print(f"DEBUG: Current Alt: {math.degrees(current_alt_rad):.2f}°, Target Alt: {math.degrees(alt_rad):.2f}° (invert={INVERT_ELEVATION_AXIS})")
         except Exception:
             pass
 
@@ -276,7 +290,11 @@ def telescope_rest(username: str):
         az_candidates = [az_limits[0], az_limits[1]]
         safe_az = min(az_candidates, key=lambda a: min((a - current_az_degrees) % 360, (current_az_degrees - a) % 360))
         print(f"DEBUG REST: Current Az: {current_az_degrees:.2f}°, Safe Rest Alt: {safe_alt:.2f}°, Safe Rest Az: {safe_az:.2f}°")
-        alt_rad = math.radians(safe_alt if not INVERT_ELEVATION_AXIS else -safe_alt)
+        # Apply same coordinate mapping as move_tel
+        if INVERT_ELEVATION_AXIS:
+            alt_rad = math.radians(90 - safe_alt)
+        else:
+            alt_rad = math.radians(safe_alt)
         target_az = -math.radians(safe_az)
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, baseJointHandle, target_az, sim.simx_opmode_oneshot)
