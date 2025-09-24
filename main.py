@@ -480,17 +480,18 @@ def get_valid_alt_az() -> Tuple[float, float]:
 def alt_az_input_validation(alt: float, az: float) -> bool:
     if not isinstance(alt, (float, int)) or not isinstance(az, (float, int)):
         raise ValueError("Alt and Az must be numbers")
+    
+    # CRITICAL SAFETY CHECK: Prevent negative altitude
+    if alt < 0:
+        raise ValueError(f"Altitude {alt}° is below horizon! Must be 0° or higher to prevent telescope damage.")
+    
     # Use configured limits for validation
-    alt_limits = config.get('altitude_limits', [-75, 75])
+    alt_limits = config.get('altitude_limits', [0, 90])
     az_limits = config.get('azimuth_limits', [25, 355])
     if not (alt_limits[0] <= alt <= alt_limits[1]):
         raise ValueError(f"Alt must be between {alt_limits[0]} and {alt_limits[1]} degrees")
     if not (az_limits[0] <= az <= az_limits[1]):
         raise ValueError(f"Az must be between {az_limits[0]} and {az_limits[1]} degrees")
-    if not (alt_limits[0] <= alt <= alt_limits[1]):
-        raise ValueError(f"Alt out of custom limits: {alt_limits}")
-    if not (az_limits[0] <= az <= az_limits[1]):
-        raise ValueError(f"Az out of custom limits: {az_limits}")
     return True
 
 # Get validated RA/Dec with input loop
@@ -549,13 +550,13 @@ def main():
             'celestial_ping_time': 3,
             'movement_timeout': 10,
             'position_tolerance': 0.01,
-            'altitude_limits': [-75, 75],
+            'altitude_limits': [0, 90],
             'azimuth_limits': [25, 355],
             'clamp_to_limits': True,
             'prevent_below_horizon': True,
             'safety_alt_margin_deg': 2.0,
             'safety_az_margin_deg': 1.0,
-            'invert_elevation_axis': False,
+            'invert_elevation_axis': True,
             'force_first_movement_clockwise': False,
             'tracking_in_background': False,
             'headless_tracking': False,
