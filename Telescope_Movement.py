@@ -114,14 +114,29 @@ def wait_for_joint_position(joint_handle: int, target_position: float) -> bool:
 def move_tel(alt: float, az: float):
     """
     Move the telescope to the specified altitude and azimuth without accumulation.
+    This function enforces altitude bounds (ALTITUDE_LIMITS) and azimuth limits,
+    logs attempts, and returns True on success, False on cancelled attempts.
     """
-    global is_first_movement
+    global is_first_movement, clientID
+
+    # Enforce altitude bounds first (group requested -75 to +75)
+    if alt < ALTITUDE_LIMITS[0] or alt > ALTITUDE_LIMITS[1]:
+        print(f"WARNING: Altitude {alt:.2f}° is outside allowed range ({ALTITUDE_LIMITS[0]}° to {ALTITUDE_LIMITS[1]}°). Movement cancelled.")
+        FH.write_log("system", "Telescope Control", "warning",
+                     f"Attempted to move outside altitude bounds: Alt={alt:.2f}°, Az={az:.2f}")
+        return False
+
+    # Enforce overall movement limits (both alt and az)
     if not check_limits(alt, az):
-        raise ValueError(f"Out of limits: Alt={alt} (limits={ALTITUDE_LIMITS}), Az={az} (limits={AZIMUTH_LIMITS})")
+        print(f"Target coordinates Alt: {alt:.2f}°, Az: {az:.2f}° -> Out of bounds! Movement cancelled.")
+        FH.write_log("system", "Telescope Control", "warning",
+                     f"Out of bounds movement attempt: Alt={alt}, Az={az}")
+        return False
+
     try:
         if not test_con():
             raise RuntimeError("Connection failed")
-        
+
         # Get joint handles
         baseJointHandle = sim.simxGetObjectHandle(clientID, 'Base_joint', sim.simx_opmode_blocking)[1]
         mountJointHandle = sim.simxGetObjectHandle(clientID, 'Mount_joint', sim.simx_opmode_blocking)[1]
@@ -172,12 +187,15 @@ def move_tel(alt: float, az: float):
         if base_reached and mount_reached:
             FH.write_log("system", "Telescope Movement", "success", f"Moved telescope to Alt: {alt}, Az: {az}")
             print("Telescope moved successfully.")
+            return True
         else:
             FH.write_log("system", "Telescope Movement", "warning", f"Timeout moving telescope to Alt: {alt}, Az: {az}")
             print("Warning: Telescope movement timed out.")
+            return False
     except Exception as e:
         FH.write_log("system", "Telescope Movement", "error", f"Failed to move telescope to Alt: {alt}, Az: {az} -> Error: {e}")
         print(f"Error moving telescope: {e}")
+        # keep behavior: re-raise so calling code can handle critical errors if needed
         raise
 
 def telescope_rest(username: str):
@@ -236,68 +254,112 @@ def _is_stop_requested() -> bool:
             pass
     return False
 
-def move_tel(alt: float, az: float):
+def _tracking_loop(code: str):
     """
-    Move telescope to given Alt/Az coordinates.
-    Prevents moving below horizon.
+    Internal tracking loop. Periodically queries celestial object coordinates and attempts to move.
+    If the object's altitude is outside ALTITUDE_LIMITS, it logs a warning and either rests/stops.
     """
-    # Check if object is below horizon
-    if alt < 0:
-        print(f"WARNING: Altitude {alt:.2f}° is below the horizon. Movement cancelled.")
-        FH.write_log("system", "Telescope Control", "warning",
-                     f"Attempted to move below horizon: Alt={alt:.2f}°, Az={az:.2f}°")
-        return False
+    try:
+        while not _tracking_stop_event.is_set():
+            start_time = time.time()
+            # Wait for the configured ping interval or until stop requested
+            while time.time() - start_time < PING_RA_DEC:
+                if _tracking_stop_event.is_set() or _is_stop_requested():
+                    print("Stopping tracking...")
+                    # Return telescope to rest and log
+                    try:
+                        telescope_rest("system")
+                    except Exception:
+                        # If rest fails, still proceed to stop
+                        pass
+                    FH.write_log("system", "Tracking", "success", "Stopped tracking celestial object.")
+                    _tracking_stop_event.set()
+                    return
+                time.sleep(0.1)
 
-    # Check limits as usual
-    if not check_limits(alt, az):
-        print(f"Target coordinates Alt: {alt:.2f}°, Az: {az:.2f}° -> Out of bounds! Movement cancelled.")
-        FH.write_log("system", "Telescope Control", "warning",
-                     f"Out of bounds movement attempt: Alt={alt}, Az={az}")
-        return False
+            # Get celestial object details and convert to Alt/Az
+            _, name, ra, dec = C.get_celestial_object_details(code)
+            alt, az = C.convert_radec_to_altaz(ra, dec)
 
-    # If everything is fine, move telescope
-    print(f"Telescope moving to Alt: {alt:.2f}°, Az: {az:.2f}")
-    # --- Your motor/simulator move code here ---
-    FH.write_log("system", "Telescope Control", "success",
-                 f"Telescope moved to Alt={alt:.2f}°, Az={az:.2f}")
-    return True
+            # Enforce altitude bounds (group requested -75 to +75)
+            if alt < ALTITUDE_LIMITS[0] or alt > ALTITUDE_LIMITS[1]:
+                print(f"WARNING: Celestial object {name} altitude {alt:.2f}° outside allowed range ({ALTITUDE_LIMITS[0]} to {ALTITUDE_LIMITS[1]}). Movement stopped.")
+                FH.write_log("system", "Tracking", "warning",
+                             f"Celestial object {name} outside allowed altitude range ({ALTITUDE_LIMITS[0]} to {ALTITUDE_LIMITS[1]}): Alt={alt:.2f}°, Az={az:.2f}°")
+                # Optionally put telescope to rest and stop tracking loop
+                if test_con():
+                    try:
+                        telescope_rest("system")
+                    except Exception:
+                        pass
+                break
 
-
-            #py -m pip install tabulate
-            #py -m pip install werkzeug
-            #py -m pip install PyJWT
+            # Check normal movement limits (this also covers azimuth limits)
+            if check_limits(alt, az):
+                print(f"Tracking Celestial Object -> NAME: {name}, CODE: {code}, RA: {ra:.3f} hours, Dec: {dec:.3f}°")
+                print(f"Telescope tracking Alt: {alt:.2f}°, Az: {az:.2f}°\nPress q to stop tracking.\n")
+                if test_con():
+                    try:
+                        moved = move_tel(alt, az)
+                        if moved:
+                            FH.write_log("system", "Track Celestial Object", "success",
+                                         f"Started tracking celestial object -> NAME: {name}, CODE: {code}")
+                        else:
+                            # move_tel returned False (cancelled due to bounds or timeout)
+                            FH.write_log("system", "Track Celestial Object", "warning",
+                                         f"Movement cancelled for celestial object -> NAME: {name}, CODE: {code}")
+                    except Exception as e:
+                        FH.write_log("system", "Telescope Movement", "error",
+                                     f"Failed to move telescope for object {name} (RA: {ra}, Dec: {dec}) -> Error: {e}")
+                        break
+                else:
+                    FH.write_log("system", "Telescope Movement", "error",
+                                 f"Failed to move telescope for object {name} (RA: {ra}, Dec: {dec}) - connection failed")
+                    break
+            else:
+                print(f"Target coordinates (RA: {ra:.3f} hours, Dec: {dec:.3f}°) -> Out of bounds!")
+                print(f"Coordinates (Alt: {alt:.2f}°, Az: {az:.2f}°) -> Stopping movement.")
+                FH.write_log("system", "Tracking", "warning",
+                             f"Celestial object out of bounds: Alt: {alt}, Az: {az}.")
+                if test_con():
+                    try:
+                        telescope_rest("system")
+                    except Exception:
+                        pass
+                break
 
     except KeyboardInterrupt:
         FH.write_log("system", "Tracking", "warning", "Tracking interrupted by user.")
-        if test_con():
-            telescope_rest("system")
+        try:
+            if test_con():
+                telescope_rest("system")
+        except Exception:
+            pass
         print("Tracking stopped by user.")
     except Exception as e:
         FH.write_log("system", "Tracking", "error", f"Error occurred during tracking: {e}")
-
         print(f"Error occurred during tracking: {e}")
 
 def track_celestial_object(code: str):
     """
     Continuously track a celestial object by code. Optional background thread.
     """
+    global _tracking_thread
     if TRACKING_IN_BACKGROUND:
-        global _tracking_thread
         if _tracking_thread and _tracking_thread.is_alive():
             print("Tracking already in progress.")
             return
         _tracking_stop_event.clear()
-        _tracking_thread = threading.Thread(target=_tracking_loop, args=(code,), daemon=True) 
-
+        _tracking_thread = threading.Thread(target=_tracking_loop, args=(code,), daemon=True)
         _tracking_thread.start()
         print("Tracking started in background.")
-
         return
     else:
         _tracking_stop_event.clear()
         _tracking_loop(code)
 
 def stop_tracking():
+    global _tracking_thread
     _tracking_stop_event.set()
     if _tracking_thread and _tracking_thread.is_alive():
         _tracking_thread.join(timeout=2)
@@ -308,8 +370,14 @@ def close():
     """
     global clientID, is_first_movement
     if clientID is not None and clientID != -1:
-        sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
-        sim.simxFinish(clientID)
+        try:
+            sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
+        except Exception:
+            pass
+        try:
+            sim.simxFinish(clientID)
+        except Exception:
+            pass
         clientID = None
         is_first_movement = True  # Reset for next connection
         print("CoppeliaSim connection closed.")
