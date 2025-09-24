@@ -238,9 +238,9 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
             print("Database not initialized.")
             return Menu.TELESCOPE
         try:
-            # Admins see all; operators see only their own
-            query = {} if role == 'admin' else {'user_id': str(user['_id'])}
-            objs = list(objects_collection.find(query))
+            # All roles can view/select any objects (admin- or user-created),
+            # but only admins can maintain them via Object Management menu
+            objs = list(objects_collection.find({}))
             if not objs:
                 print("No astronomical objects found.")
                 return Menu.TELESCOPE
@@ -263,14 +263,16 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print(f"RA/Dec: {obj['ra_dec']}")
                 print(f"NED Code: {obj['ned_code']}")
                 try:
-                    # Prefer stored numeric RA/Dec if available
+                    # Prefer stored numeric RA/Dec if available; otherwise pass raw strings
                     if 'ra' in obj and 'dec' in obj:
-                        ra = float(obj['ra'])
-                        dec = float(obj['dec'])
+                        ra = obj['ra']
+                        dec = obj['dec']
                     else:
+                        if not obj.get('ra_dec'):
+                            raise ValueError("Object is missing RA/Dec values")
                         ra_str, dec_str = obj['ra_dec'].split(',')
-                        ra = float(ra_str.strip())
-                        dec = float(dec_str.strip())
+                        ra = ra_str.strip()
+                        dec = dec_str.strip()
                     alt, az = C.convert_radec_to_altaz(ra, dec)
                     TM.move_tel(alt, az)
                     print(f"Telescope pointed to {obj['name']} (RA: {ra}, Dec: {dec})")
