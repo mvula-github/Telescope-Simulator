@@ -1,3 +1,8 @@
 astropy
 geocoder
 requests
+astroquery
+python-dotenv
+keyboard
+pymongo
+bcrypt

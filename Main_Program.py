@@ -300,9 +300,13 @@ def handle_menu_choice(menu_num, choice, user, action_logs_collection):
             FH.write_log(username, "Tracking", True, f"Tracking celestial object: {celestial_code}")
             log_action(action_logs_collection, username, "Tracking", "telescope", True, f"Tracking celestial object: {celestial_code}")
         elif choice == 4:  # Rest Mode
-            TM.telescope_rest()
-            FH.write_log(username, "Rest Mode", True, "Telescope moved to rest mode")
-            log_action(action_logs_collection, username, "Rest Mode", "telescope", True, "Telescope moved to rest mode")
+            try:
+                TM.telescope_rest()
+                FH.write_log(username, "Rest Mode", True, "Telescope moved to rest mode")
+                log_action(action_logs_collection, username, "Rest Mode", "telescope", True, "Telescope moved to rest mode")
+            except Exception as e:
+                FH.write_log(username, "Rest Mode", False, f"Failed to enter rest mode: {e}")
+                log_action(action_logs_collection, username, "Rest Mode", "telescope", False, f"Failed to enter rest mode: {e}")
         display_menu(0, user["role"])
         handle_menu_choice(0, get_menu_choice(), user, action_logs_collection)
     elif menu_num == 2:  # Configure Settings Menu

@@ -47,6 +47,11 @@ def get_location_and_elevation(method='stored'):
         longitude = config.get('longitude')
         elevation = config.get('elevation')
 
+    # Basic sanity checks
+    if latitude is not None and not (-90 <= float(latitude) <= 90):
+        raise ValueError("Latitude must be within -90 to 90 degrees.")
+    if longitude is not None and not (-180 <= float(longitude) <= 180):
+        raise ValueError("Longitude must be within -180 to 180 degrees.")
     return latitude, longitude, elevation
 
 def get_celestial_object_details(code):
