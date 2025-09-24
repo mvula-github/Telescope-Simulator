@@ -10,5 +10,16 @@
     "azimuth_limits": [
         25.0,
         355.0
-    ]
+    ],
+    "movement_timeout": 10,
+    "position_tolerance": 0.01,
+    "clamp_to_limits": true,
+    "invert_elevation_axis": false,
+    "force_first_movement_clockwise": false,
+    "tracking_in_background": false,
+    "headless_tracking": false,
+    "base_joint_name": "Base_joint",
+    "mount_joint_name": "Mount_joint",
+    "base_max_force": 1000.0,
+    "elevation_max_force": 1500.0
 }

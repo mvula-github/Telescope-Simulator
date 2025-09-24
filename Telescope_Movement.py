@@ -30,6 +30,9 @@ TRACKING_IN_BACKGROUND = config.get('tracking_in_background', False)
 INVERT_ELEVATION_AXIS = bool(config.get('invert_elevation_axis', False))
 BASE_JOINT_NAME = config.get('base_joint_name', 'Base_joint')
 MOUNT_JOINT_NAME = config.get('mount_joint_name', 'Mount_joint')
+PREVENT_BELOW_HORIZON = bool(config.get('prevent_below_horizon', True))
+SAFETY_ALT_MARGIN_DEG = float(config.get('safety_alt_margin_deg', 2.0))
+SAFETY_AZ_MARGIN_DEG = float(config.get('safety_az_margin_deg', 1.0))
 
 def _get_altitude_limits():
     limits = config.get('altitude_limits', [-75, 75])
@@ -92,14 +95,29 @@ def check_limits(alt: float, az: float) -> bool:
     az_limits = _get_azimuth_limits()
     return alt_limits[0] <= alt <= alt_limits[1] and az_limits[0] <= az <= az_limits[1]
 
-def _clamp_to_limits(alt: float, az: float) -> (float, float):
+def _effective_limits():
     alt_limits = _get_altitude_limits()
     az_limits = _get_azimuth_limits()
+    alt_min = alt_limits[0] + SAFETY_ALT_MARGIN_DEG
+    alt_max = alt_limits[1] - SAFETY_ALT_MARGIN_DEG
+    az_min = az_limits[0] + SAFETY_AZ_MARGIN_DEG
+    az_max = az_limits[1] - SAFETY_AZ_MARGIN_DEG
+    if PREVENT_BELOW_HORIZON:
+        alt_min = max(alt_min, 0.0 + SAFETY_ALT_MARGIN_DEG)
+    # Ensure min <= max even with tight margins
+    if alt_min > alt_max:
+        alt_min, alt_max = alt_limits[0], alt_limits[1]
+    if az_min > az_max:
+        az_min, az_max = az_limits[0], az_limits[1]
+    return (alt_min, alt_max), (az_min, az_max)
+
+def _clamp_to_limits(alt: float, az: float) -> (float, float):
+    (alt_min, alt_max), (az_min, az_max) = _effective_limits()
     # Normalize azimuth to [0, 360)
     az_norm = az % 360
-    # Clamp to configured window
-    clamped_alt = min(max(alt, alt_limits[0]), alt_limits[1])
-    clamped_az = min(max(az_norm, az_limits[0]), az_limits[1])
+    # Clamp to effective window
+    clamped_alt = min(max(alt, alt_min), alt_max)
+    clamped_az = min(max(az_norm, az_min), az_max)
     return clamped_alt, clamped_az
 
 def get_current_joint_position(joint_handle: int) -> float:
@@ -141,13 +159,15 @@ def move_tel(alt: float, az: float):
     Move the telescope to the specified altitude and azimuth without accumulation.
     """
     global is_first_movement
-    if not check_limits(alt, az):
-        clamp_enabled = bool(config.get('clamp_to_limits', True))
-        if clamp_enabled:
-            original_alt, original_az = alt, az
-            alt, az = _clamp_to_limits(alt, az)
-            print(f"Warning: Target clamped to limits. Alt: {original_alt}->{alt}, Az: {original_az}->{az}")
-        else:
+    # Always clamp to effective limits if enabled, otherwise validate
+    clamp_enabled = bool(config.get('clamp_to_limits', True))
+    if clamp_enabled:
+        original_alt, original_az = alt, az
+        alt, az = _clamp_to_limits(alt, az)
+        if (original_alt, original_az) != (alt, az):
+            print(f"Warning: Target clamped to safe limits. Alt: {original_alt}->{alt}, Az: {original_az}->{az}")
+    else:
+        if not check_limits(alt, az):
             alt_limits = _get_altitude_limits()
             az_limits = _get_azimuth_limits()
             raise ValueError(f"Out of limits: Alt={alt} (limits={alt_limits}), Az={az} (limits={az_limits})")
@@ -248,20 +268,24 @@ def telescope_rest(username: str):
         mountJointHandle = sim.simxGetObjectHandle(clientID, MOUNT_JOINT_NAME, sim.simx_opmode_blocking)[1]
         current_az = get_current_joint_position(baseJointHandle)
         current_az_degrees = -math.degrees(current_az) % 360
-        print(f"DEBUG REST: Current Az: {current_az_degrees:.2f}°, Target: 0°")
-        anticlockwise_distance = current_az_degrees if current_az_degrees != 0 else 0
-        print(f"DEBUG REST: Anticlockwise distance to origin: {anticlockwise_distance:.2f}°")
-        alt_rad = math.radians(90)
-        target_az = 0
-        print(f"DEBUG REST: Target Az in CoppeliaSim coordinates: {math.degrees(target_az):.2f}°")
+        # Compute safe rest targets within configured limits
+        alt_limits = _get_altitude_limits()
+        az_limits = _get_azimuth_limits()
+        safe_alt = min(max(90.0, alt_limits[0]), alt_limits[1])
+        # Park at the nearest limit boundary to minimize travel
+        az_candidates = [az_limits[0], az_limits[1]]
+        safe_az = min(az_candidates, key=lambda a: min((a - current_az_degrees) % 360, (current_az_degrees - a) % 360))
+        print(f"DEBUG REST: Current Az: {current_az_degrees:.2f}°, Safe Rest Alt: {safe_alt:.2f}°, Safe Rest Az: {safe_az:.2f}°")
+        alt_rad = math.radians(safe_alt if not INVERT_ELEVATION_AXIS else -safe_alt)
+        target_az = -math.radians(safe_az)
         sim.simxStartSimulation(clientID, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, baseJointHandle, target_az, sim.simx_opmode_oneshot)
         sim.simxSetJointTargetPosition(clientID, mountJointHandle, alt_rad, sim.simx_opmode_oneshot)
         base_reached = wait_for_joint_position(baseJointHandle, target_az)
         mount_reached = wait_for_joint_position(mountJointHandle, alt_rad)
         if base_reached and mount_reached:
-            print("Rest mode entered (pointing vertical to the sky).")
-            FH.write_log(username, "Rest Mode", "success", "Telescope entered rest mode (vertical).")
+            print("Rest mode entered (safe within configured limits).")
+            FH.write_log(username, "Rest Mode", "success", f"Telescope parked safely (Alt: {safe_alt}, Az: {safe_az}).")
         else:
             print("Warning: Rest mode movement timed out.")
             FH.write_log(username, "Rest Mode", "warning", "Timeout entering rest mode.")

@@ -46,7 +46,7 @@ COMMAND_DESCRIPTIONS = {
     "Display Available Celestial Objects": "Display list of all celestial objects that are in a certain radius from ra (right ascension) & dec (declination) values.",
     "Check Internet Connection": "Test internet connection and give feedback.",
     "Create User": "Create a new user.",
-    "List Users": "List all users.",
+    "List Users": "List all users.", 
     "Update User": "Update an existing user.",
     "Delete User": "Delete an existing user."
 }
@@ -550,6 +550,9 @@ def main():
             'altitude_limits': [-75, 75],
             'azimuth_limits': [25, 355],
             'clamp_to_limits': True,
+            'prevent_below_horizon': True,
+            'safety_alt_margin_deg': 2.0,
+            'safety_az_margin_deg': 1.0,
             'invert_elevation_axis': False,
             'force_first_movement_clockwise': False,
             'tracking_in_background': False,
