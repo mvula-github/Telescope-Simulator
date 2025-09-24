@@ -18,22 +18,37 @@ client = None
 db = None
 collection = None
 
+# Fallback file paths
+LOGS_FILE = os.path.join('Resources', 'Logs.txt')
+ERRORS_FILE = os.path.join('Resources', 'Errors.txt')
+
 def init_mongodb():
-    """Initialize MongoDB connection."""
+    """Initialize MongoDB connection. Falls back to file logging if unavailable."""
     global client, db, collection
     try:
         client = MongoClient(MONGO_URI)
         client.admin.command('ismaster')  # Test connection
         db = client[DB_NAME]
-        collection = db['Logs'] 
+        collection = db['Logs']
         collection.create_index([('timestamp', -1)], background=True)
         print("MongoDB connected successfully.")
-    except ConnectionFailure as e:
-        print(f"Error: MongoDB connection failed: {e}. Ensure MONGO_URI is correct and MongoDB is accessible.")
-        raise RuntimeError(f"MongoDB connection failed: {e}")
-    except PyMongoError as e:
-        print(f"Error: MongoDB initialization error: {e}")
-        raise RuntimeError(f"MongoDB initialization error: {e}")
+    except (ConnectionFailure, PyMongoError) as e:
+        # Fall back to file-based logging
+        client = None
+        db = None
+        collection = None
+        print(f"Warning: MongoDB unavailable ({e}). Falling back to file logging at {LOGS_FILE}.")
+        # Ensure fallback directory exists
+        try:
+            os.makedirs(os.path.dirname(LOGS_FILE), exist_ok=True)
+            if not os.path.exists(LOGS_FILE):
+                with open(LOGS_FILE, 'a', encoding='utf-8') as f:
+                    f.write('Date\tTime\tUser\tCommand\tDescription\n')
+            if not os.path.exists(ERRORS_FILE):
+                with open(ERRORS_FILE, 'a', encoding='utf-8') as f:
+                    f.write('Date\tTime\tUser\tCommand\tError Message\n')
+        except OSError:
+            pass
 
 def get_script_path() -> str:
     """Returns the directory path of the current script."""
@@ -85,49 +100,79 @@ def write_log(user: str, command: str, level: str, description: str):
         'description': description
     }
     try:
-        if collection is None:
-            raise RuntimeError("MongoDB not initialized. Call init_mongodb() before logging.")
-        collection.insert_one(log_entry)
+        if collection is not None:
+            collection.insert_one(log_entry)
+            return
     except PyMongoError as e:
         print(f"Error: Failed to write log to MongoDB: {e}")
-        raise RuntimeError(f"Failed to write log to MongoDB: {e}")
+        # Fall back to file below
+
+    # Fallback to file-based logging
+    try:
+        os.makedirs(os.path.dirname(LOGS_FILE), exist_ok=True)
+        now = datetime.now()
+        date_str = now.strftime('%Y-%m-%d')
+        time_str = now.strftime('%H:%M:%S')
+        line = f"{date_str}\t{time_str}\t{user}\t{command}\t{description}\n"
+        with open(LOGS_FILE, 'a', encoding='utf-8') as f:
+            f.write(line)
+        if level == 'error':
+            with open(ERRORS_FILE, 'a', encoding='utf-8') as f:
+                f.write(f"{date_str}\t{time_str}\t{user}\t{command}\t{description}\n")
+    except OSError as e:
+        print(f"Error: Failed to write fallback log files: {e}")
 
 def display_logs():
     """
-    Query and display logs from MongoDB, grouped by level.
+    Display logs from MongoDB if available, otherwise from fallback file.
     """
     try:
-        if collection is None:
-            raise RuntimeError("MongoDB not initialized. Cannot display logs.")
+        if collection is not None:
+            logs = list(collection.find().sort('timestamp', -1).limit(100))
+            if not logs:
+                print("No logs found in MongoDB.")
+                return
 
-        logs = list(collection.find().sort('timestamp', -1).limit(100))
-        if not logs:
-            print("No logs found in MongoDB.")
+            # Group logs by level
+            levels = {}
+            for log in logs:
+                level = log['level']
+                if level not in levels:
+                    levels[level] = []
+                levels[level].append([
+                    log['timestamp'].strftime('%Y-%m-%d %H:%M:%S'),
+                    log['user'],
+                    log['command'],
+                    log['description']
+                ])
+
+            # Print logs grouped by level using tabulate
+            for level, entries in sorted(levels.items()):
+                print(f"\n{level.upper()} Logs:")
+                headers = ["Timestamp", "User", "Command", "Description"]
+                print(tabulate(entries, headers=headers, tablefmt="github"))
             return
-
-        # Group logs by level
-        levels = {}
-        for log in logs:
-            level = log['level']
-            if level not in levels:
-                levels[level] = []
-            levels[level].append([
-                log['timestamp'].strftime('%Y-%m-%d %H:%M:%S'),
-                log['user'],
-                log['command'],
-                log['description']
-            ])
-
-        # Print logs grouped by level using tabulate
-        for level, entries in sorted(levels.items()):
-            print(f"\n{level.upper()} Logs:")
-            headers = ["Timestamp", "User", "Command", "Description"]
-            print(tabulate(entries, headers=headers, tablefmt="github"))
-
     except PyMongoError as e:
         print(f"Error: Failed to fetch logs from MongoDB: {e}")
-    except RuntimeError as e:
-        print(f"Error: {e}")
+
+    # Fallback to file
+    try:
+        if not os.path.exists(LOGS_FILE):
+            print("No logs available (fallback file missing).")
+            return
+        with open(LOGS_FILE, 'r', encoding='utf-8') as f:
+            lines = f.read().splitlines()
+        if len(lines) <= 1:
+            print("No logs available in fallback file.")
+            return
+        # Print last 100 entries excluding header
+        header = lines[0]
+        entries = lines[1:][-100:]
+        print(header)
+        for line in entries:
+            print(line)
+    except OSError as e:
+        print(f"Error: Failed to read fallback log file: {e}")
 
 def main():
     init_mongodb()
