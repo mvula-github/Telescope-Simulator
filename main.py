@@ -24,7 +24,8 @@ try:
     from core.system_config import config
     import simulation.track_objects as OT
     import api.user_api as UM
-    from api.user_api import users_collection
+    from api.user_api import users_collection, create_user, list_users, update_user, delete_user
+    from simulation.track_objects import create_object, list_objects, update_object, delete_object, objects_collection
     from users.middleware.auth import authenticate_user
     
     print("✅ Successfully imported from new package structure!")
@@ -34,11 +35,11 @@ except ImportError as e:
     print("🔄 Falling back to old imports...")
     
     # Fallback to old imports (in case migration isn't complete)
-    import File_Handling as FH
-    import Telescope_Movement as TM
-    import Calculations as C
-    import System_Checks as SCh
-    from System_Config import config
+    import core.file_handling as FH
+    import core.telescope_control as TM
+    import core.calculations as C
+    import core.system_checks as SCh
+    from core.system_config import config
     from simulation.track_objects import create_object, list_objects, update_object, delete_object, objects_collection
     from api.user_api import create_user, list_users, update_user, delete_user, users_collection
     from users.middleware.auth import authenticate_user
@@ -102,7 +103,7 @@ MENUS = {
     5: ["1. Display Location", "2. Display Telescope Logs", "3. Display All Commands & Descriptions", 
         "4. Display Available Celestial Objects", "5. Check Internet Connection", "6. Back"],
     6: ["1. Create Object", "2. List Objects", "3. Update Object", "4. Delete Object", "5. Back"],
-    7: ["Select an object by number, or type 0 to go back."]
+    7: ["Select a celestial object to track (will show all available objects)"]
 }
 
 # Menu enumeration
@@ -193,43 +194,43 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
         if choice == 1:  # Point to AltAz
             try:
                 alt, az = get_valid_alt_az()
-                TM.move_tel(alt, az)
+                TM.move_tel(alt, az, username)
                 print(f"Telescope moved to Alt: {alt}, Az: {az}")
-                FH.write_log(username, "Point to AltAz", "success", f"Moved telescope to Alt: {alt}, Az: {az}")
+                FH.write_log(username, "Point to AltAz", "success", f"Moved telescope to Alt: {alt}, Az: {az}", username)
             except Exception as e:
                 print(f"Error: {e}")
-                FH.write_log(username, "Point to AltAz", "error", str(e))
+                FH.write_log(username, "Point to AltAz", "error", str(e), username)
         elif choice == 2:  # Point to RaDec
             try:
                 ra, dec = get_valid_ra_dec()
                 alt, az = C.convert_radec_to_altaz(ra, dec)
-                TM.move_tel(alt, az)
+                TM.move_tel(alt, az, username)
                 print(f"Telescope moved to RA: {ra}, Dec: {dec} (Alt: {alt}, Az: {az})")
-                FH.write_log(username, "Point to RaDec", "success", f"Moved telescope to RA: {ra}, Dec: {dec}")
+                FH.write_log(username, "Point to RaDec", "success", f"Moved telescope to RA: {ra}, Dec: {dec}", username)
             except Exception as e:
                 print(f"Error: {e}")
-                FH.write_log(username, "Point to RaDec", "error", str(e))
+                FH.write_log(username, "Point to RaDec", "error", str(e), username)
         elif choice == 3:  # Tracking
             try:
                 code = get_valid_celestial_code()
-                TM.track_celestial_object(code)
-                FH.write_log(username, "Tracking", "success", f"Started tracking celestial object: {code}")
+                TM.track_celestial_object(code, username)
+                FH.write_log(username, "Tracking", "success", f"Started tracking celestial object: {code}", username)
             except Exception as e:
                 print(f"Error: {e}")
-                FH.write_log(username, "Tracking", "error", str(e))
+                FH.write_log(username, "Tracking", "error", str(e), username)
         elif choice == 4:  # Rest Mode
             try:
-                TM.telescope_rest(username)
+                TM.telescope_rest(username, username)
                 print("Telescope moved to rest position.")
-                FH.write_log(username, "Rest Mode", "success", "Telescope moved to rest position")
+                FH.write_log(username, "Rest Mode", "success", "Telescope moved to rest position", username)
             except Exception as e:
                 print(f"Error: {e}")
-                FH.write_log(username, "Rest Mode", "error", str(e))
+                FH.write_log(username, "Rest Mode", "error", str(e), username)
         elif choice == 5:  # Objects submenu
             return Menu.OBJECTS
         elif choice == 6:
             return Menu.MAIN
-        return None
+        return Menu.TELESCOPE  # Stay in telescope menu instead of returning None
     elif current_menu == Menu.CONFIG:
         if choice == 1:  # Change Telescope Location
             try:
@@ -248,7 +249,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print(f"Error: {e}")
         elif choice == 4:
             return Menu.MAIN
-        return None
+        return Menu.CONFIG  # Stay in config menu
     elif current_menu == Menu.COORDS:
         if choice == 1:  # Convert Alt & Az to Ra & Dec
             try:
@@ -266,7 +267,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print(f"Error: {e}")
         elif choice == 3:
             return Menu.MAIN
-        return None
+        return Menu.COORDS  # Stay in coords menu
     elif current_menu == Menu.USER_MANAGEMENT:
         if choice == 1:  # Create User
             try:
@@ -290,7 +291,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print(f"Error: {e}")
         elif choice == 5:
             return Menu.MAIN
-        return None
+        return Menu.USER_MANAGEMENT  # Stay in user management menu
     elif current_menu == Menu.DISPLAY:
         if choice == 1:  # Display Location
             try:
@@ -299,7 +300,7 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print(f"Error: {e}")
         elif choice == 2:  # Display Telescope Logs
             try:
-                FH.display_logs()
+                display_telescope_logs()
             except Exception as e:
                 print(f"Error: {e}")
         elif choice == 3:  # Display All Commands & Descriptions
@@ -309,18 +310,18 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print(f"Error: {e}")
         elif choice == 4:  # Display Available Celestial Objects
             try:
-                display_available_celestial_objects()
+                display_objects()
             except Exception as e:
                 print(f"Error: {e}")
         elif choice == 5:  # Check Internet Connection
             try:
-                status, message = SCh.check_internet_connection()
-                print(f"Internet Connection: {message}")
+                status = SCh.check_internet_connection()
+                print(f"Internet Connection: {status.message}")
             except Exception as e:
                 print(f"Error: {e}")
         elif choice == 6:
             return Menu.MAIN
-        return None
+        return Menu.DISPLAY  # Stay in display menu
     elif current_menu == Menu.OBJECT_MANAGEMENT:
         if choice == 1:  # Create Object
             try:
@@ -344,17 +345,48 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 print(f"Error: {e}")
         elif choice == 5:
             return Menu.MAIN
-        return None
+        return Menu.OBJECT_MANAGEMENT  # Stay in object management menu
     elif current_menu == Menu.OBJECTS:
         if choice == 0:
             return Menu.TELESCOPE
         else:
             try:
-                # Get objects and allow selection
+                # Get objects and display them first
                 objs = list(objects_collection.find({}))
-                if 1 <= choice <= len(objs):
-                    obj = objs[choice - 1]
-                    print(f"Selected: {obj['name']} (RA: {obj.get('ra', 'N/A')}, Dec: {obj.get('dec', 'N/A')})")
+                if not objs:
+                    print("No celestial objects available.")
+                    print("Please add objects through Object Management first.")
+                    return Menu.OBJECTS
+                
+                # Display all available objects
+                print("\n" + "="*60)
+                print("AVAILABLE CELESTIAL OBJECTS")
+                print("="*60)
+                for i, obj in enumerate(objs, 1):
+                    print(f"{i:2d}. {obj['name']}")
+                    print(f"    Description: {obj.get('description', 'No description')}")
+                    if 'ra' in obj and 'dec' in obj:
+                        print(f"    Coordinates: RA: {obj['ra']}, Dec: {obj['dec']}")
+                    elif 'ra_dec' in obj:
+                        print(f"    Coordinates: {obj['ra_dec']}")
+                    print(f"    NED Code: {obj.get('ned_code', 'N/A')}")
+                    print()
+                
+                print("="*60)
+                print("Enter the number of the object you want to track (0 to go back):")
+                
+                # Get user selection
+                try:
+                    selection = int(input("Your choice: "))
+                except ValueError:
+                    print("Invalid input. Please enter a number.")
+                    return Menu.OBJECTS
+                
+                if selection == 0:
+                    return Menu.TELESCOPE
+                elif 1 <= selection <= len(objs):
+                    obj = objs[selection - 1]
+                    print(f"\nSelected: {obj['name']}")
                     
                     # Move telescope to object
                     try:
@@ -367,17 +399,18 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                             ra = ra.strip()
                             dec = dec.strip()
                         alt, az = C.convert_radec_to_altaz(ra, dec)
-                        TM.move_tel(alt, az)
+                        print(f"Converting coordinates: RA: {ra}, Dec: {dec} -> Alt: {alt:.2f}°, Az: {az:.2f}°")
+                        TM.move_tel(alt, az, username)
                         print(f"Telescope moved to {obj['name']} (Alt: {alt:.2f}°, Az: {az:.2f}°)")
-                        FH.write_log(username, "Object Selection", "success", f"Selected and moved to {obj['name']}")
+                        FH.write_log(username, "Object Selection", "success", f"Selected and moved to {obj['name']}", username)
                     except Exception as e:
                         print(f"Error moving telescope: {e}")
-                        FH.write_log(username, "Object Selection", "error", f"Failed to move to {obj['name']}: {e}")
+                        FH.write_log(username, "Object Selection", "error", f"Failed to move to {obj['name']}: {e}", username)
                 else:
                     print("Invalid object selection.")
             except Exception as e:
                 print(f"Error: {e}")
-        return None
+        return Menu.OBJECTS  # Stay in objects menu
 
 # Get validated Alt/Az with input loop
 def get_valid_alt_az() -> Tuple[float, float]:
@@ -490,6 +523,59 @@ def display_location():
     print(f"Longitude: {config.get('longitude', 'Not set')}")
     print(f"Elevation: {config.get('elevation', 'Not set')}")
 
+def display_limits():
+    """Display current telescope limits."""
+    try:
+        alt_limits = config.get('altitude_limits', [0, 90])
+        az_limits = config.get('azimuth_limits', [0, 360])
+        print(f"Current telescope limits:")
+        print(f"  Altitude: {alt_limits[0]}° to {alt_limits[1]}°")
+        print(f"  Azimuth: {az_limits[0]}° to {az_limits[1]}°")
+    except Exception as e:
+        print(f"Error displaying limits: {e}")
+
+def display_objects():
+    """Display all celestial objects."""
+    try:
+        objects = list_objects()
+        if objects:
+            print("Available celestial objects:")
+            for i, obj in enumerate(objects, 1):
+                print(f"  {i}. {obj['name']} - {obj.get('description', 'No description')}")
+        else:
+            print("No celestial objects found.")
+    except Exception as e:
+        print(f"Error displaying objects: {e}")
+
+def display_users():
+    """Display all users."""
+    try:
+        users = list_users()
+        if users:
+            print("Available users:")
+            for user in users:
+                print(f"  Username: {user['username']}, Role: {user.get('role', 'operator')}, Name: {user.get('name', 'N/A')}")
+        else:
+            print("No users found.")
+    except Exception as e:
+        print(f"Error displaying users: {e}")
+
+def display_telescope_logs():
+    """Display recent telescope logs."""
+    try:
+        log_file = "logs/telescope.log"
+        if os.path.exists(log_file):
+            print("Recent telescope logs:")
+            with open(log_file, 'r') as f:
+                lines = f.readlines()
+                # Show last 10 lines
+                for line in lines[-10:]:
+                    print(f"  {line.strip()}")
+        else:
+            print("No telescope logs found.")
+    except Exception as e:
+        print(f"Error displaying logs: {e}")
+
 def display_all_commands():
     print("\nAll Commands and Descriptions:")
     print("=" * 50)
@@ -587,6 +673,12 @@ def main():
         except Exception as e:
             print(f"An error occurred: {e}")
             logging.error(f"Application error: {e}")
+    
+    # Close telescope connection when exiting
+    try:
+        TM.close()
+    except Exception as e:
+        print(f"Warning: Error closing telescope connection: {e}")
     
     print("Thank you for using the Telescope Simulator!")
 

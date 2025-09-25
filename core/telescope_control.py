@@ -148,13 +148,17 @@ def wait_for_joint_position(joint_handle: int, target_position: float) -> bool:
     """
     start_time = time.time()
     while time.time() - start_time < MOVEMENT_TIMEOUT:
-        current_position = get_current_joint_position(joint_handle)
-        if abs(current_position - target_position) < POSITION_TOLERANCE:
-            return True
+        try:
+            current_position = get_current_joint_position(joint_handle)
+            if abs(current_position - target_position) < POSITION_TOLERANCE:
+                return True
+        except Exception as e:
+            # Continue waiting, but log the error
+            pass
         time.sleep(0.1)
     return False
 
-def move_tel(alt: float, az: float):
+def move_tel(alt: float, az: float, current_user: str = None):
     """
     Move the telescope to the specified altitude and azimuth without accumulation.
     """
@@ -171,7 +175,10 @@ def move_tel(alt: float, az: float):
         original_alt, original_az = alt, az
         alt, az = _clamp_to_limits(alt, az)
         if (original_alt, original_az) != (alt, az):
-            print(f"Warning: Target clamped to safe limits. Alt: {original_alt}->{alt}, Az: {original_az}->{az}")
+            print(f"⚠️  WARNING: Target clamped to safe limits!")
+            print(f"   Original: Alt: {original_alt}°, Az: {original_az}°")
+            print(f"   Clamped:  Alt: {alt}°, Az: {az}°")
+            print(f"   Safety margins: Alt ±{SAFETY_ALT_MARGIN_DEG}°, Az ±{SAFETY_AZ_MARGIN_DEG}°")
     else:
         if not check_limits(alt, az):
             alt_limits = _get_altitude_limits()
@@ -193,7 +200,14 @@ def move_tel(alt: float, az: float):
 
             sim.simxSetObjectInt32Param(clientID, mountJointHandle, sim.sim_jointintparam_motor_enabled, 1, sim.simx_opmode_oneshot)
             sim.simxSetObjectInt32Param(clientID, mountJointHandle, sim.sim_jointintparam_ctrl_enabled, 1, sim.simx_opmode_oneshot)
-            sim.simxSetJointMaxForce(clientID, mountJointHandle, float(config.get('elevation_max_force', 1500.0)), sim.simx_opmode_oneshot)
+            
+            # Increase force for low altitudes to prevent getting stuck
+            base_force = float(config.get('elevation_max_force', 1500.0))
+            if alt < 30:  # Increase force for low altitudes
+                base_force *= 1.5
+                print(f"DEBUG: Low altitude detected ({alt}°), increasing force to {base_force}")
+            
+            sim.simxSetJointMaxForce(clientID, mountJointHandle, base_force, sim.simx_opmode_oneshot)
         except Exception as _:
             # Ignore parameter setting errors; continue with best effort
             pass
@@ -202,9 +216,13 @@ def move_tel(alt: float, az: float):
         # If invert is needed, we need to map: 0°->90°, 90°->0° in CoppeliaSim coordinates
         if INVERT_ELEVATION_AXIS:
             # Map user input (0-90°) to CoppeliaSim coordinates (90-0°)
-            alt_rad = math.radians(90 - alt)
+            # But ensure we don't go below 0° in CoppeliaSim coordinates
+            coppelia_alt = max(0, 90 - alt)  # Ensure minimum 0° in CoppeliaSim
+            alt_rad = math.radians(coppelia_alt)
+            print(f"DEBUG: User input {alt}° -> CoppeliaSim {coppelia_alt}° (inverted)")
         else:
             alt_rad = math.radians(alt)
+            print(f"DEBUG: User input {alt}° -> CoppeliaSim {alt}° (not inverted)")
         az_rad = math.radians(az)
 
         # Get current azimuth
@@ -259,27 +277,30 @@ def move_tel(alt: float, az: float):
         mount_reached = wait_for_joint_position(mountJointHandle, alt_rad)
 
         if base_reached and mount_reached:
-            FH.write_log("system", "Telescope Movement", "success", f"Moved telescope to Alt: {alt}, Az: {az}")
+            FH.write_log("system", "Telescope Movement", "success", f"Moved telescope to Alt: {alt}, Az: {az}", current_user)
             print("Telescope moved successfully.")
         else:
-            FH.write_log("system", "Telescope Movement", "warning", f"Timeout moving telescope to Alt: {alt}, Az: {az}")
+            FH.write_log("system", "Telescope Movement", "warning", f"Timeout moving telescope to Alt: {alt}, Az: {az}", current_user)
             print("Warning: Telescope movement timed out.")
     except Exception as e:
-        FH.write_log("system", "Telescope Movement", "error", f"Failed to move telescope to Alt: {alt}, Az: {az} -> Error: {e}")
+        FH.write_log("system", "Telescope Movement", "error", f"Failed to move telescope to Alt: {alt}, Az: {az} -> Error: {e}", current_user)
         print(f"Error moving telescope: {e}")
-        raise
+        # Don't re-raise the exception - let the menu handler deal with it
 
-def telescope_rest(username: str):
+def telescope_rest(username: str, current_user: str = None):
     """
     Move the telescope to its rest (default) position (Alt=90, Az=0 - straight up).
     Always returns to 0° azimuth via anticlockwise rotation.
     """
     global clientID, is_first_movement
     try:
+        print("DEBUG: Testing connection...")
         if not test_con():
             raise RuntimeError("Connection failed")
+        print("DEBUG: Getting joint handles...")
         baseJointHandle = sim.simxGetObjectHandle(clientID, BASE_JOINT_NAME, sim.simx_opmode_blocking)[1]
         mountJointHandle = sim.simxGetObjectHandle(clientID, MOUNT_JOINT_NAME, sim.simx_opmode_blocking)[1]
+        print("DEBUG: Joint handles obtained successfully")
         current_az = get_current_joint_position(baseJointHandle)
         current_az_degrees = -math.degrees(current_az) % 360
         # Compute safe rest targets within configured limits
@@ -303,16 +324,13 @@ def telescope_rest(username: str):
         mount_reached = wait_for_joint_position(mountJointHandle, alt_rad)
         if base_reached and mount_reached:
             print("Rest mode entered (safe within configured limits).")
-            FH.write_log(username, "Rest Mode", "success", f"Telescope parked safely (Alt: {safe_alt}, Az: {safe_az}).")
+            FH.write_log(username, "Rest Mode", "success", f"Telescope parked safely (Alt: {safe_alt}, Az: {safe_az}).", current_user)
         else:
             print("Warning: Rest mode movement timed out.")
-            FH.write_log(username, "Rest Mode", "warning", "Timeout entering rest mode.")
-        sim.simxStopSimulation(clientID, sim.simx_opmode_oneshot)
-        sim.simxFinish(clientID)
-        clientID = None
-        is_first_movement = True  # Reset for next connection
+            FH.write_log(username, "Rest Mode", "warning", "Timeout entering rest mode.", current_user)
+        # Note: Connection remains open for further telescope operations
     except Exception as e:
-        FH.write_log(username, "Rest Mode", "error", f"Failed to enter rest mode: {e}")
+        FH.write_log(username, "Rest Mode", "error", f"Failed to enter rest mode: {e}", current_user)
         print(f"Error entering rest mode: {e}")
 
 def _is_stop_requested() -> bool:
@@ -341,8 +359,8 @@ def _tracking_loop(code: str):
             while time.time() - start_time < PING_RA_DEC:
                 if _tracking_stop_event.is_set() or _is_stop_requested():
                     print("Stopping tracking...")
-                    telescope_rest("system")
-                    FH.write_log("system", "Tracking", "success", "Stopped tracking celestial object.")
+                    telescope_rest("system", current_user)
+                    FH.write_log("system", "Tracking", "success", "Stopped tracking celestial object.", current_user)
                     _tracking_stop_event.set()
                     return
                 time.sleep(0.1)
@@ -353,28 +371,28 @@ def _tracking_loop(code: str):
                 print(f"Tracking Celestial Object -> NAME: {name}, CODE: {code}, RA: {ra:.3f} hours, Dec: {dec:.3f}°")
                 print(f"Telescope tracking Alt: {alt:.2f}°, Az: {az:.2f}°\nPress q to stop tracking.\n")
                 if test_con():
-                    move_tel(alt, az)
-                    FH.write_log("system", "Track Celestial Object", "success", f"Started tracking celestial object -> NAME: {name}, CODE: {code}")
+                    move_tel(alt, az, current_user)
+                    FH.write_log("system", "Track Celestial Object", "success", f"Started tracking celestial object -> NAME: {name}, CODE: {code}", current_user)
                 else:
-                    FH.write_log("system", "Telescope Movement", "error", f"Failed to move telescope for object {name} (RA: {ra}, Dec: {dec})")
+                    FH.write_log("system", "Telescope Movement", "error", f"Failed to move telescope for object {name} (RA: {ra}, Dec: {dec})", current_user)
                     break
             else:
                 print(f"Target coordinates (RA: {ra:.3f} hours, Dec: {dec:.3f}°) -> Out of bounds!")
                 print(f"Coordinates (Alt: {alt:.2f}°, Az: {az:.2f}°) -> Stopping movement.")
-                FH.write_log("system", "Tracking", "warning", f"Celestial object out of bounds: Alt: {alt}, Az: {az}.")
+                FH.write_log("system", "Tracking", "warning", f"Celestial object out of bounds: Alt: {alt}, Az: {az}.", current_user)
                 if test_con():
-                    telescope_rest("system")
+                    telescope_rest("system", current_user)
                 break
     except KeyboardInterrupt:
-        FH.write_log("system", "Tracking", "warning", "Tracking interrupted by user.")
+        FH.write_log("system", "Tracking", "warning", "Tracking interrupted by user.", current_user)
         if test_con():
-            telescope_rest("system")
+            telescope_rest("system", current_user)
         print("Tracking stopped by user.")
     except Exception as e:
-        FH.write_log("system", "Tracking", "error", f"Error occurred during tracking: {e}")
+        FH.write_log("system", "Tracking", "error", f"Error occurred during tracking: {e}", current_user)
         print(f"Error occurred during tracking: {e}")
 
-def track_celestial_object(code: str):
+def track_celestial_object(code: str, current_user: str = None):
     """
     Continuously track a celestial object by code. Optional background thread.
     """

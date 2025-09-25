@@ -116,16 +116,18 @@ def create_user():
 def list_users():
     if users_collection is None:
         print("Database not initialized.")
-        return
+        return []
     try:
-        users = users_collection.find()
+        users = list(users_collection.find())
         print("\nUsers:")
         for user in users:
             print(f"Username: {user['username']}, Name: {user['name']} {user['surname']}, Role: {user['role']}")
         FH.write_log("admin", "List Users", "success", "Listed all users")
+        return users
     except PyMongoError as e:
         print(f"Error listing users: {e}")
         FH.write_log("admin", "List Users", "error", f"Failed to list users: {e}")
+        return []
 
 # Update an existing user (interactive)
 def update_user():

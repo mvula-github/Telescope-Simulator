@@ -23,6 +23,6 @@
     "base_max_force": 1000.0,
     "elevation_max_force": 1500.0,
     "prevent_below_horizon": true,
-    "safety_alt_margin_deg": 2.0,
+    "safety_alt_margin_deg": 0.5,
     "safety_az_margin_deg": 1.0
 }
