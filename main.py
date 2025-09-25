@@ -416,8 +416,8 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
 def get_valid_alt_az() -> Tuple[float, float]:
     while True:
         try:
-            alt = float(input("Enter Alt (Altitude) degrees (0 to 90): "))
-            az = float(input("Enter Az (Azimuth) degrees (25 to 355): "))
+            alt = float(input("Enter Alt (Altitude) degrees (5 to 90): "))
+            az = float(input("Enter Az (Azimuth) degrees (25 to 335): "))
             alt_az_input_validation(alt, az)
             return alt, az
         except ValueError as e:
@@ -433,8 +433,8 @@ def alt_az_input_validation(alt: float, az: float) -> bool:
         raise ValueError(f"Altitude {alt}° is below horizon! Must be 0° or higher to prevent telescope damage.")
     
     # Use configured limits for validation
-    alt_limits = config.get('altitude_limits', [0, 90])
-    az_limits = config.get('azimuth_limits', [25, 355])
+    alt_limits = config.get('altitude_limits', [5, 90])
+    az_limits = config.get('azimuth_limits', [25, 335])
     if not (alt_limits[0] <= alt <= alt_limits[1]):
         raise ValueError(f"Alt must be between {alt_limits[0]} and {alt_limits[1]} degrees")
     if not (az_limits[0] <= az <= az_limits[1]):
@@ -499,8 +499,8 @@ def change_data_store_location():
 
 def change_telescope_limits():
     print("Current telescope limits:")
-    print(f"Altitude: {config.get('altitude_limits', [0, 90])}")
-    print(f"Azimuth: {config.get('azimuth_limits', [25, 355])}")
+    print(f"Altitude: {config.get('altitude_limits', [5, 90])}")
+    print(f"Azimuth: {config.get('azimuth_limits', [25, 335])}")
     
     try:
         alt_min = float(input("Enter minimum altitude: "))
@@ -526,8 +526,8 @@ def display_location():
 def display_limits():
     """Display current telescope limits."""
     try:
-        alt_limits = config.get('altitude_limits', [0, 90])
-        az_limits = config.get('azimuth_limits', [0, 360])
+        alt_limits = config.get('altitude_limits', [5, 90])
+        az_limits = config.get('azimuth_limits', [25, 335])
         print(f"Current telescope limits:")
         print(f"  Altitude: {alt_limits[0]}° to {alt_limits[1]}°")
         print(f"  Azimuth: {az_limits[0]}° to {az_limits[1]}°")

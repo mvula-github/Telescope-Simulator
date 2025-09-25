@@ -164,26 +164,23 @@ def move_tel(alt: float, az: float, current_user: str = None):
     """
     global is_first_movement
     
+    # Check if coordinates are within telescope limits
+    if not check_limits(alt, az):
+        alt_limits = _get_altitude_limits()
+        az_limits = _get_azimuth_limits()
+        print(f"❌ MOVEMENT BLOCKED: Coordinates are outside telescope limits!")
+        print(f"   Requested: Alt: {alt}°, Az: {az}°")
+        print(f"   Limits:    Alt: {alt_limits[0]}° to {alt_limits[1]}°, Az: {az_limits[0]}° to {az_limits[1]}°")
+        print(f"   Please adjust coordinates to within the allowed range.")
+        FH.write_log("system", "Telescope Movement", "warning", f"Movement blocked - coordinates out of limits: Alt: {alt}°, Az: {az}°", current_user)
+        return  # Exit without moving the telescope
+    
     # CRITICAL SAFETY CHECK: Prevent negative altitude (below horizon)
     if alt < 0:
-        print(f"ERROR: Altitude {alt}° is below horizon! Clamping to 0° to prevent telescope damage.")
-        alt = 0.0
-    
-    # Always clamp to effective limits if enabled, otherwise validate
-    clamp_enabled = bool(config.get('clamp_to_limits', True))
-    if clamp_enabled:
-        original_alt, original_az = alt, az
-        alt, az = _clamp_to_limits(alt, az)
-        if (original_alt, original_az) != (alt, az):
-            print(f"⚠️  WARNING: Target clamped to safe limits!")
-            print(f"   Original: Alt: {original_alt}°, Az: {original_az}°")
-            print(f"   Clamped:  Alt: {alt}°, Az: {az}°")
-            print(f"   Safety margins: Alt ±{SAFETY_ALT_MARGIN_DEG}°, Az ±{SAFETY_AZ_MARGIN_DEG}°")
-    else:
-        if not check_limits(alt, az):
-            alt_limits = _get_altitude_limits()
-            az_limits = _get_azimuth_limits()
-            raise ValueError(f"Out of limits: Alt={alt} (limits={alt_limits}), Az={az} (limits={az_limits})")
+        print(f"❌ MOVEMENT BLOCKED: Altitude {alt}° is below horizon!")
+        print(f"   Please use coordinates above 0° to prevent telescope damage.")
+        FH.write_log("system", "Telescope Movement", "warning", f"Movement blocked - altitude below horizon: {alt}°", current_user)
+        return  # Exit without moving the telescope
     try:
         if not test_con():
             raise RuntimeError("Connection failed")

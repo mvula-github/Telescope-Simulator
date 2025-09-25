@@ -1,28 +1,22 @@
 {
-    "latitude": 0.0,
-    "longitude": 0.0,
-    "elevation": 0.0,
-    "celestial_ping_time": 3,
-    "altitude_limits": [
-        0.0,
-        90.0
-    ],
-    "azimuth_limits": [
-        25.0,
-        355.0
-    ],
-    "movement_timeout": 10,
-    "position_tolerance": 0.01,
-    "clamp_to_limits": true,
-    "invert_elevation_axis": true,
-    "force_first_movement_clockwise": false,
-    "tracking_in_background": false,
-    "headless_tracking": false,
-    "base_joint_name": "Base_joint",
-    "mount_joint_name": "Mount_joint",
-    "base_max_force": 1000.0,
-    "elevation_max_force": 1500.0,
-    "prevent_below_horizon": true,
-    "safety_alt_margin_deg": 0.5,
-    "safety_az_margin_deg": 1.0
+  "latitude": 0.0,
+  "longitude": 0.0,
+  "elevation": 0.0,
+  "celestial_ping_time": 3,
+  "altitude_limits": [5.0, 90.0],
+  "azimuth_limits": [25.0, 335.0],
+  "movement_timeout": 10,
+  "position_tolerance": 0.01,
+  "clamp_to_limits": true,
+  "invert_elevation_axis": true,
+  "force_first_movement_clockwise": false,
+  "tracking_in_background": false,
+  "headless_tracking": false,
+  "base_joint_name": "Base_joint",
+  "mount_joint_name": "Mount_joint",
+  "base_max_force": 1000.0,
+  "elevation_max_force": 1500.0,
+  "prevent_below_horizon": true,
+  "safety_alt_margin_deg": 0.5,
+  "safety_az_margin_deg": 1.0
 }
