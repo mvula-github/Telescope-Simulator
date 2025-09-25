@@ -97,7 +97,7 @@ MENUS = {
         ]
     },
     1: ["1. Point To AltAz", "2. Point To RaDec", "3. Tracking", "4. Rest Mode", "5. Objects", "6. Back"],
-    2: ["1. Change Telescope Location", "2. Change Data Store Location", "3. Change Telescope Limits", "4. Back"],
+    2: ["1. Change Telescope Location", "2. Change Telescope Limits", "3. Change Movement Settings", "4. Change Safety Settings", "5. Change Simulation Settings", "6. View All Settings", "7. Back"],
     3: ["1. Convert Alt & Az to Ra & Dec", "2. Convert Ra & Dec to Alt & Az", "3. Back"],
     4: ["1. Create User", "2. List Users", "3. Update User", "4. Delete User", "5. Back"],
     5: ["1. Display Location", "2. Display Telescope Logs", "3. Display All Commands & Descriptions", 
@@ -237,17 +237,32 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
                 change_telescope_location()
             except Exception as e:
                 print(f"Error: {e}")
-        elif choice == 2:  # Change Data Store Location
-            try:
-                change_data_store_location()
-            except Exception as e:
-                print(f"Error: {e}")
-        elif choice == 3:  # Change Telescope Limits
+        elif choice == 2:  # Change Telescope Limits
             try:
                 change_telescope_limits()
             except Exception as e:
                 print(f"Error: {e}")
-        elif choice == 4:
+        elif choice == 3:  # Change Movement Settings
+            try:
+                change_movement_settings()
+            except Exception as e:
+                print(f"Error: {e}")
+        elif choice == 4:  # Change Safety Settings
+            try:
+                change_safety_settings()
+            except Exception as e:
+                print(f"Error: {e}")
+        elif choice == 5:  # Change Simulation Settings
+            try:
+                change_simulation_settings()
+            except Exception as e:
+                print(f"Error: {e}")
+        elif choice == 6:  # View All Settings
+            try:
+                view_all_settings()
+            except Exception as e:
+                print(f"Error: {e}")
+        elif choice == 7:
             return Menu.MAIN
         return Menu.CONFIG  # Stay in config menu
     elif current_menu == Menu.COORDS:
@@ -476,46 +491,344 @@ def celestial_code_input_validation(code: str) -> bool:
 
 # Configuration functions
 def change_telescope_location():
+    """Change telescope location settings with validation."""
+    print("\n=== CHANGE TELESCOPE LOCATION ===")
     print("Current telescope location:")
-    print(f"Latitude: {config.get('latitude', 'Not set')}")
-    print(f"Longitude: {config.get('longitude', 'Not set')}")
-    print(f"Elevation: {config.get('elevation', 'Not set')}")
+    print(f"  Latitude: {config.get('latitude', 'Not set')}°")
+    print(f"  Longitude: {config.get('longitude', 'Not set')}°")
+    print(f"  Elevation: {config.get('elevation', 'Not set')} meters")
     
     try:
-        lat = float(input("Enter new latitude: "))
-        lon = float(input("Enter new longitude: "))
-        elev = float(input("Enter new elevation (meters): "))
+        print("\nEnter new location values:")
+        lat = float(input("Enter latitude (-90 to 90): "))
+        if not -90 <= lat <= 90:
+            print("Error: Latitude must be between -90 and 90 degrees.")
+            return
+            
+        lon = float(input("Enter longitude (-180 to 180): "))
+        if not -180 <= lon <= 180:
+            print("Error: Longitude must be between -180 and 180 degrees.")
+            return
+            
+        elev = float(input("Enter elevation in meters: "))
+        if elev < 0:
+            print("Error: Elevation cannot be negative.")
+            return
         
-        config.set('latitude', lat)
-        config.set('longitude', lon)
-        config.set('elevation', elev)
-        config.save()
+        # Confirm changes
+        print(f"\nNew location will be:")
+        print(f"  Latitude: {lat}°")
+        print(f"  Longitude: {lon}°")
+        print(f"  Elevation: {elev} meters")
         
-        print("Telescope location updated successfully!")
+        confirm = input("\nSave these changes? (yes/no): ").strip().lower()
+        if confirm == 'yes':
+            config.set('latitude', lat)
+            config.set('longitude', lon)
+            config.set('elevation', elev)
+            config.save()
+            print("✅ Telescope location updated successfully!")
+            FH.write_log("admin", "Change Location", "success", f"Updated location to Lat: {lat}, Lon: {lon}, Elev: {elev}", "admin")
+        else:
+            print("Changes cancelled.")
+        
     except ValueError:
-        print("Invalid input. Please enter numeric values.")
+        print("❌ Invalid input. Please enter numeric values.")
+        FH.write_log("admin", "Change Location", "error", "Invalid input provided", "admin")
+    except Exception as e:
+        print(f"❌ Error updating location: {e}")
+        FH.write_log("admin", "Change Location", "error", str(e), "admin")
 
-def change_data_store_location():
-    print("Data store location configuration not implemented yet.")
+def change_movement_settings():
+    """Change telescope movement settings."""
+    print("\n=== CHANGE MOVEMENT SETTINGS ===")
+    print("Current movement settings:")
+    print(f"  Movement Timeout: {config.get('movement_timeout', 10)} seconds")
+    print(f"  Position Tolerance: {config.get('position_tolerance', 0.01)} degrees")
+    print(f"  Clamp to Limits: {config.get('clamp_to_limits', True)}")
+    print(f"  Invert Elevation Axis: {config.get('invert_elevation_axis', True)}")
+    print(f"  Force First Movement Clockwise: {config.get('force_first_movement_clockwise', False)}")
+    
+    try:
+        print("\nEnter new movement settings:")
+        
+        timeout = float(input("Enter movement timeout in seconds (1-60): "))
+        if not 1 <= timeout <= 60:
+            print("Error: Timeout must be between 1 and 60 seconds.")
+            return
+            
+        tolerance = float(input("Enter position tolerance in degrees (0.001-1.0): "))
+        if not 0.001 <= tolerance <= 1.0:
+            print("Error: Tolerance must be between 0.001 and 1.0 degrees.")
+            return
+            
+        clamp_input = input("Clamp to limits? (yes/no): ").strip().lower()
+        clamp_to_limits = clamp_input == 'yes'
+        
+        invert_input = input("Invert elevation axis? (yes/no): ").strip().lower()
+        invert_elevation = invert_input == 'yes'
+        
+        clockwise_input = input("Force first movement clockwise? (yes/no): ").strip().lower()
+        force_clockwise = clockwise_input == 'yes'
+        
+        # Confirm changes
+        print(f"\nNew movement settings will be:")
+        print(f"  Movement Timeout: {timeout} seconds")
+        print(f"  Position Tolerance: {tolerance} degrees")
+        print(f"  Clamp to Limits: {clamp_to_limits}")
+        print(f"  Invert Elevation Axis: {invert_elevation}")
+        print(f"  Force First Movement Clockwise: {force_clockwise}")
+        
+        confirm = input("\nSave these changes? (yes/no): ").strip().lower()
+        if confirm == 'yes':
+            config.set('movement_timeout', timeout)
+            config.set('position_tolerance', tolerance)
+            config.set('clamp_to_limits', clamp_to_limits)
+            config.set('invert_elevation_axis', invert_elevation)
+            config.set('force_first_movement_clockwise', force_clockwise)
+            config.save()
+            print("✅ Movement settings updated successfully!")
+            FH.write_log("admin", "Change Movement Settings", "success", f"Updated movement settings", "admin")
+        else:
+            print("Changes cancelled.")
+            
+    except ValueError:
+        print("❌ Invalid input. Please enter numeric values.")
+        FH.write_log("admin", "Change Movement Settings", "error", "Invalid input provided", "admin")
+    except Exception as e:
+        print(f"❌ Error updating movement settings: {e}")
+        FH.write_log("admin", "Change Movement Settings", "error", str(e), "admin")
+
+def change_safety_settings():
+    """Change telescope safety settings."""
+    print("\n=== CHANGE SAFETY SETTINGS ===")
+    print("Current safety settings:")
+    print(f"  Prevent Below Horizon: {config.get('prevent_below_horizon', True)}")
+    print(f"  Safety Altitude Margin: {config.get('safety_alt_margin_deg', 0.5)}°")
+    print(f"  Safety Azimuth Margin: {config.get('safety_az_margin_deg', 1.0)}°")
+    
+    try:
+        print("\nEnter new safety settings:")
+        
+        prevent_input = input("Prevent below horizon? (yes/no): ").strip().lower()
+        prevent_below = prevent_input == 'yes'
+        
+        alt_margin = float(input("Enter safety altitude margin in degrees (0.1-5.0): "))
+        if not 0.1 <= alt_margin <= 5.0:
+            print("Error: Altitude margin must be between 0.1 and 5.0 degrees.")
+            return
+            
+        az_margin = float(input("Enter safety azimuth margin in degrees (0.1-10.0): "))
+        if not 0.1 <= az_margin <= 10.0:
+            print("Error: Azimuth margin must be between 0.1 and 10.0 degrees.")
+            return
+        
+        # Confirm changes
+        print(f"\nNew safety settings will be:")
+        print(f"  Prevent Below Horizon: {prevent_below}")
+        print(f"  Safety Altitude Margin: {alt_margin}°")
+        print(f"  Safety Azimuth Margin: {az_margin}°")
+        
+        confirm = input("\nSave these changes? (yes/no): ").strip().lower()
+        if confirm == 'yes':
+            config.set('prevent_below_horizon', prevent_below)
+            config.set('safety_alt_margin_deg', alt_margin)
+            config.set('safety_az_margin_deg', az_margin)
+            config.save()
+            print("✅ Safety settings updated successfully!")
+            FH.write_log("admin", "Change Safety Settings", "success", f"Updated safety settings", "admin")
+        else:
+            print("Changes cancelled.")
+            
+    except ValueError:
+        print("❌ Invalid input. Please enter numeric values.")
+        FH.write_log("admin", "Change Safety Settings", "error", "Invalid input provided", "admin")
+    except Exception as e:
+        print(f"❌ Error updating safety settings: {e}")
+        FH.write_log("admin", "Change Safety Settings", "error", str(e), "admin")
+
+def change_simulation_settings():
+    """Change simulation and joint settings."""
+    print("\n=== CHANGE SIMULATION SETTINGS ===")
+    print("Current simulation settings:")
+    print(f"  Base Joint Name: {config.get('base_joint_name', 'Base_joint')}")
+    print(f"  Mount Joint Name: {config.get('mount_joint_name', 'Mount_joint')}")
+    print(f"  Base Max Force: {config.get('base_max_force', 1000.0)} N")
+    print(f"  Elevation Max Force: {config.get('elevation_max_force', 1500.0)} N")
+    print(f"  Celestial Ping Time: {config.get('celestial_ping_time', 3)} seconds")
+    print(f"  Tracking in Background: {config.get('tracking_in_background', False)}")
+    print(f"  Headless Tracking: {config.get('headless_tracking', False)}")
+    
+    try:
+        print("\nEnter new simulation settings:")
+        
+        base_joint = input("Enter base joint name: ").strip()
+        if not base_joint:
+            print("Error: Base joint name cannot be empty.")
+            return
+            
+        mount_joint = input("Enter mount joint name: ").strip()
+        if not mount_joint:
+            print("Error: Mount joint name cannot be empty.")
+            return
+            
+        base_force = float(input("Enter base max force in N (100-5000): "))
+        if not 100 <= base_force <= 5000:
+            print("Error: Base force must be between 100 and 5000 N.")
+            return
+            
+        elevation_force = float(input("Enter elevation max force in N (100-5000): "))
+        if not 100 <= elevation_force <= 5000:
+            print("Error: Elevation force must be between 100 and 5000 N.")
+            return
+            
+        ping_time = float(input("Enter celestial ping time in seconds (1-30): "))
+        if not 1 <= ping_time <= 30:
+            print("Error: Ping time must be between 1 and 30 seconds.")
+            return
+            
+        background_input = input("Enable tracking in background? (yes/no): ").strip().lower()
+        tracking_background = background_input == 'yes'
+        
+        headless_input = input("Enable headless tracking? (yes/no): ").strip().lower()
+        headless_tracking = headless_input == 'yes'
+        
+        # Confirm changes
+        print(f"\nNew simulation settings will be:")
+        print(f"  Base Joint Name: {base_joint}")
+        print(f"  Mount Joint Name: {mount_joint}")
+        print(f"  Base Max Force: {base_force} N")
+        print(f"  Elevation Max Force: {elevation_force} N")
+        print(f"  Celestial Ping Time: {ping_time} seconds")
+        print(f"  Tracking in Background: {tracking_background}")
+        print(f"  Headless Tracking: {headless_tracking}")
+        
+        confirm = input("\nSave these changes? (yes/no): ").strip().lower()
+        if confirm == 'yes':
+            config.set('base_joint_name', base_joint)
+            config.set('mount_joint_name', mount_joint)
+            config.set('base_max_force', base_force)
+            config.set('elevation_max_force', elevation_force)
+            config.set('celestial_ping_time', ping_time)
+            config.set('tracking_in_background', tracking_background)
+            config.set('headless_tracking', headless_tracking)
+            config.save()
+            print("✅ Simulation settings updated successfully!")
+            FH.write_log("admin", "Change Simulation Settings", "success", f"Updated simulation settings", "admin")
+        else:
+            print("Changes cancelled.")
+            
+    except ValueError:
+        print("❌ Invalid input. Please enter numeric values.")
+        FH.write_log("admin", "Change Simulation Settings", "error", "Invalid input provided", "admin")
+    except Exception as e:
+        print(f"❌ Error updating simulation settings: {e}")
+        FH.write_log("admin", "Change Simulation Settings", "error", str(e), "admin")
+
+def view_all_settings():
+    """Display all current configuration settings."""
+    print("\n=== ALL CONFIGURATION SETTINGS ===")
+    print("=" * 50)
+    
+    # Location settings
+    print("📍 LOCATION SETTINGS:")
+    print(f"  Latitude: {config.get('latitude', 'Not set')}°")
+    print(f"  Longitude: {config.get('longitude', 'Not set')}°")
+    print(f"  Elevation: {config.get('elevation', 'Not set')} meters")
+    
+    # Movement limits
+    print("\n🎯 MOVEMENT LIMITS:")
+    alt_limits = config.get('altitude_limits', [5, 90])
+    az_limits = config.get('azimuth_limits', [25, 335])
+    print(f"  Altitude: {alt_limits[0]}° to {alt_limits[1]}°")
+    print(f"  Azimuth: {az_limits[0]}° to {az_limits[1]}°")
+    
+    # Movement settings
+    print("\n⚙️ MOVEMENT SETTINGS:")
+    print(f"  Movement Timeout: {config.get('movement_timeout', 10)} seconds")
+    print(f"  Position Tolerance: {config.get('position_tolerance', 0.01)} degrees")
+    print(f"  Clamp to Limits: {config.get('clamp_to_limits', True)}")
+    print(f"  Invert Elevation Axis: {config.get('invert_elevation_axis', True)}")
+    print(f"  Force First Movement Clockwise: {config.get('force_first_movement_clockwise', False)}")
+    
+    # Safety settings
+    print("\n🛡️ SAFETY SETTINGS:")
+    print(f"  Prevent Below Horizon: {config.get('prevent_below_horizon', True)}")
+    print(f"  Safety Altitude Margin: {config.get('safety_alt_margin_deg', 0.5)}°")
+    print(f"  Safety Azimuth Margin: {config.get('safety_az_margin_deg', 1.0)}°")
+    
+    # Simulation settings
+    print("\n🎮 SIMULATION SETTINGS:")
+    print(f"  Base Joint Name: {config.get('base_joint_name', 'Base_joint')}")
+    print(f"  Mount Joint Name: {config.get('mount_joint_name', 'Mount_joint')}")
+    print(f"  Base Max Force: {config.get('base_max_force', 1000.0)} N")
+    print(f"  Elevation Max Force: {config.get('elevation_max_force', 1500.0)} N")
+    print(f"  Celestial Ping Time: {config.get('celestial_ping_time', 3)} seconds")
+    print(f"  Tracking in Background: {config.get('tracking_in_background', False)}")
+    print(f"  Headless Tracking: {config.get('headless_tracking', False)}")
+    
+    print("\n" + "=" * 50)
+    FH.write_log("admin", "View All Settings", "success", "Viewed all configuration settings", "admin")
 
 def change_telescope_limits():
+    """Change telescope movement limits with validation."""
+    print("\n=== CHANGE TELESCOPE LIMITS ===")
     print("Current telescope limits:")
-    print(f"Altitude: {config.get('altitude_limits', [5, 90])}")
-    print(f"Azimuth: {config.get('azimuth_limits', [25, 335])}")
+    alt_limits = config.get('altitude_limits', [5, 90])
+    az_limits = config.get('azimuth_limits', [25, 335])
+    print(f"  Altitude: {alt_limits[0]}° to {alt_limits[1]}°")
+    print(f"  Azimuth: {az_limits[0]}° to {az_limits[1]}°")
     
     try:
-        alt_min = float(input("Enter minimum altitude: "))
-        alt_max = float(input("Enter maximum altitude: "))
-        az_min = float(input("Enter minimum azimuth: "))
-        az_max = float(input("Enter maximum azimuth: "))
+        print("\nEnter new limit values:")
+        alt_min = float(input("Enter minimum altitude (0-90): "))
+        alt_max = float(input("Enter maximum altitude (0-90): "))
+        az_min = float(input("Enter minimum azimuth (0-360): "))
+        az_max = float(input("Enter maximum azimuth (0-360): "))
         
-        config.set('altitude_limits', [alt_min, alt_max])
-        config.set('azimuth_limits', [az_min, az_max])
-        config.save()
+        # Validate altitude limits
+        if not 0 <= alt_min <= 90:
+            print("Error: Minimum altitude must be between 0 and 90 degrees.")
+            return
+        if not 0 <= alt_max <= 90:
+            print("Error: Maximum altitude must be between 0 and 90 degrees.")
+            return
+        if alt_min >= alt_max:
+            print("Error: Minimum altitude must be less than maximum altitude.")
+            return
+            
+        # Validate azimuth limits
+        if not 0 <= az_min <= 360:
+            print("Error: Minimum azimuth must be between 0 and 360 degrees.")
+            return
+        if not 0 <= az_max <= 360:
+            print("Error: Maximum azimuth must be between 0 and 360 degrees.")
+            return
+        if az_min >= az_max:
+            print("Error: Minimum azimuth must be less than maximum azimuth.")
+            return
         
-        print("Telescope limits updated successfully!")
+        # Confirm changes
+        print(f"\nNew limits will be:")
+        print(f"  Altitude: {alt_min}° to {alt_max}°")
+        print(f"  Azimuth: {az_min}° to {az_max}°")
+        
+        confirm = input("\nSave these changes? (yes/no): ").strip().lower()
+        if confirm == 'yes':
+            config.set('altitude_limits', [alt_min, alt_max])
+            config.set('azimuth_limits', [az_min, az_max])
+            config.save()
+            print("✅ Telescope limits updated successfully!")
+            FH.write_log("admin", "Change Limits", "success", f"Updated limits: Alt {alt_min}-{alt_max}°, Az {az_min}-{az_max}°", "admin")
+        else:
+            print("Changes cancelled.")
+        
     except ValueError:
-        print("Invalid input. Please enter numeric values.")
+        print("❌ Invalid input. Please enter numeric values.")
+        FH.write_log("admin", "Change Limits", "error", "Invalid input provided", "admin")
+    except Exception as e:
+        print(f"❌ Error updating limits: {e}")
+        FH.write_log("admin", "Change Limits", "error", str(e), "admin")
 
 # Display functions
 def display_location():
