@@ -352,7 +352,8 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
         else:
             try:
                 # Get objects and display them first
-                objs = list(objects_collection.find({}))
+                from simulation.track_objects import list_objects as list_objects_func
+                objs = list_objects_func(show_all=True)
                 if not objs:
                     print("No celestial objects available.")
                     print("Please add objects through Object Management first.")
@@ -537,7 +538,7 @@ def display_limits():
 def display_objects():
     """Display all celestial objects."""
     try:
-        objects = list_objects()
+        objects = list_objects(show_all=True)
         if objects:
             print("Available celestial objects:")
             for i, obj in enumerate(objects, 1):
@@ -591,6 +592,144 @@ def display_available_celestial_objects():
         C.list_available_celestial_objects(ra, dec, radius)
     except ValueError:
         print("Invalid input. Please enter numeric values.")
+
+# Object Management Wrapper Functions
+def create_object():
+    """Wrapper function to create a new celestial object with user input."""
+    try:
+        print("\n=== CREATE CELESTIAL OBJECT ===")
+        name = input("Enter object name: ").strip()
+        if not name:
+            print("Error: Object name cannot be empty.")
+            return
+        
+        description = input("Enter object description: ").strip()
+        if not description:
+            print("Error: Object description cannot be empty.")
+            return
+        
+        ra_dec = input("Enter RA/Dec coordinates (format: RA,Dec): ").strip()
+        if not ra_dec:
+            print("Error: RA/Dec coordinates cannot be empty.")
+            return
+        
+        ned_code = input("Enter NED code: ").strip()
+        if not ned_code:
+            print("Error: NED code cannot be empty.")
+            return
+        
+        # For now, use a default user_id for admin users
+        # In a real system, this would come from the authenticated user
+        user_id = "admin"
+        
+        # Call the actual create_object function
+        from simulation.track_objects import create_object as create_obj_func
+        create_obj_func(user_id, name, description, ra_dec, ned_code)
+        
+        # Log the action
+        FH.write_log("admin", "Create Object", "success", f"Created object: {name}", "admin")
+        
+    except Exception as e:
+        print(f"Error creating object: {e}")
+        FH.write_log("admin", "Create Object", "error", str(e), "admin")
+
+def list_objects():
+    """Wrapper function to list celestial objects."""
+    try:
+        print("\n=== LIST CELESTIAL OBJECTS ===")
+        # Use show_all=True to display all objects for admin
+        from simulation.track_objects import list_objects as list_objects_func
+        objects = list_objects_func(show_all=True)
+        if not objects:
+            print("No celestial objects found.")
+        FH.write_log("admin", "List Objects", "success", "Listed all objects", "admin")
+    except Exception as e:
+        print(f"Error listing objects: {e}")
+        FH.write_log("admin", "List Objects", "error", str(e), "admin")
+
+def update_object():
+    """Wrapper function to update a celestial object with user input."""
+    try:
+        print("\n=== UPDATE CELESTIAL OBJECT ===")
+        
+        # First, show available objects
+        print("Available objects:")
+        from simulation.track_objects import list_objects as list_objects_func
+        objects = list_objects_func(show_all=True)
+        if not objects:
+            print("No objects available to update.")
+            return
+        
+        name = input("\nEnter the name of the object to update: ").strip()
+        if not name:
+            print("Error: Object name cannot be empty.")
+            return
+        
+        print(f"\nUpdating object: {name}")
+        print("Leave fields empty to keep current values.")
+        
+        description = input("Enter new description (or press Enter to keep current): ").strip()
+        ra_dec = input("Enter new RA/Dec coordinates (format: RA,Dec) (or press Enter to keep current): ").strip()
+        ned_code = input("Enter new NED code (or press Enter to keep current): ").strip()
+        
+        # Convert empty strings to None for optional parameters
+        description = description if description else None
+        ra_dec = ra_dec if ra_dec else None
+        ned_code = ned_code if ned_code else None
+        
+        # For now, use a default user_id for admin users
+        user_id = "admin"
+        role = "admin"
+        
+        # Call the actual update_object function
+        from simulation.track_objects import update_object as update_obj_func
+        update_obj_func(name, description, ra_dec, ned_code, user_id, role)
+        
+        # Log the action
+        FH.write_log("admin", "Update Object", "success", f"Updated object: {name}", "admin")
+        
+    except Exception as e:
+        print(f"Error updating object: {e}")
+        FH.write_log("admin", "Update Object", "error", str(e), "admin")
+
+def delete_object():
+    """Wrapper function to delete a celestial object with user input."""
+    try:
+        print("\n=== DELETE CELESTIAL OBJECT ===")
+        
+        # First, show available objects
+        print("Available objects:")
+        from simulation.track_objects import list_objects as list_objects_func
+        objects = list_objects_func(show_all=True)
+        if not objects:
+            print("No objects available to delete.")
+            return
+        
+        name = input("\nEnter the name of the object to delete: ").strip()
+        if not name:
+            print("Error: Object name cannot be empty.")
+            return
+        
+        # Confirm deletion
+        confirm = input(f"Are you sure you want to delete '{name}'? (yes/no): ").strip().lower()
+        if confirm != 'yes':
+            print("Deletion cancelled.")
+            return
+        
+        # For now, use a default user_id for admin users
+        user_id = "admin"
+        role = "admin"
+        
+        # Call the actual delete_object function
+        from simulation.track_objects import delete_object as delete_obj_func
+        delete_obj_func(name, user_id, role)
+        
+        # Log the action
+        FH.write_log("admin", "Delete Object", "success", f"Deleted object: {name}", "admin")
+        
+    except Exception as e:
+        print(f"Error deleting object: {e}")
+        FH.write_log("admin", "Delete Object", "error", str(e), "admin")
 
 # Main application loop
 def main():

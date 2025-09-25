@@ -53,12 +53,17 @@ def create_object(user_id: str, name: str, description: str, ra_dec: str, ned_co
     except PyMongoError as e:
         print(f"Error creating object: {e}")
 
-def list_objects(user_id: str = None, role: str = 'operator'):
+def list_objects(user_id: str = None, role: str = 'operator', show_all: bool = False):
     if objects_collection is None:
         print("Database not initialized.")
         return []
     try:
-        query = {} if role == 'admin' else {"user_id": user_id}
+        # If show_all is True, return all objects regardless of role
+        if show_all:
+            query = {}
+        else:
+            query = {} if role == 'admin' else {"user_id": user_id}
+        
         objs = list(objects_collection.find(query))
         if not objs:
             print("No astronomical objects found.")
