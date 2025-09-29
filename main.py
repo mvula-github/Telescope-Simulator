@@ -22,6 +22,9 @@ try:
     import core.calculations as C
     import core.system_checks as SCh
     from core.system_config import config
+    import core.data_display as DD
+    import core.display_menu as DM
+    import core.access_control as AC
     import simulation.track_objects as OT
     import api.user_api as UM
     from api.user_api import users_collection, create_user, list_users, update_user, delete_user
@@ -56,7 +59,8 @@ COMMAND_DESCRIPTIONS = {
     "Configure Settings": "Display menu responsible for configuration settings (Admin only).",
     "Coordinate System": "Display menu responsible for coordinate calculations and conversions (Admin only).",
     "User Management": "Display menu for managing users (Admin only).",
-    "Display Data": "Display menu responsible for displaying system info.",
+    "Display Data": "Display menu responsible for displaying system info with enhanced data viewing options.",
+    "Enhanced Data Viewer": "Advanced data viewing interface with configurable display options, filtering, and export capabilities.",
     "Exit": "Exit the RTOS program.",
     "Point to AltAz": "Point telescope to specific Alt (altitude) & Az (azimuth) degrees.",
     "Point To RaDec": "Point telescope to specific Ra (right ascension) & Dec (declination) values.",
@@ -100,8 +104,8 @@ MENUS = {
     2: ["1. Change Telescope Location", "2. Change Telescope Limits", "3. Change Movement Settings", "4. Change Safety Settings", "5. Change Simulation Settings", "6. View All Settings", "7. Back"],
     3: ["1. Convert Alt & Az to Ra & Dec", "2. Convert Ra & Dec to Alt & Az", "3. Back"],
     4: ["1. Create User", "2. List Users", "3. Update User", "4. Delete User", "5. Back"],
-    5: ["1. Display Location", "2. Display Telescope Logs", "3. Display All Commands & Descriptions", 
-        "4. Display Available Celestial Objects", "5. Check Internet Connection", "6. Back"],
+    5: ["1. Enhanced Data Viewer", "2. Display Location", "3. Display Telescope Logs", "4. Display All Commands & Descriptions", 
+        "5. Display Available Celestial Objects", "6. Check Internet Connection", "7. Back"],
     6: ["1. Create Object", "2. List Objects", "3. Update Object", "4. Delete Object", "5. Back"],
     7: ["Select a celestial object to track (will show all available objects)"]
 }
@@ -308,33 +312,38 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
             return Menu.MAIN
         return Menu.USER_MANAGEMENT  # Stay in user management menu
     elif current_menu == Menu.DISPLAY:
-        if choice == 1:  # Display Location
+        if choice == 1:  # Enhanced Data Viewer
+            try:
+                DM.display_menu_manager.show_display_options_menu(user)
+            except Exception as e:
+                print(f"Error: {e}")
+        elif choice == 2:  # Display Location
             try:
                 display_location()
             except Exception as e:
                 print(f"Error: {e}")
-        elif choice == 2:  # Display Telescope Logs
+        elif choice == 3:  # Display Telescope Logs
             try:
                 display_telescope_logs()
             except Exception as e:
                 print(f"Error: {e}")
-        elif choice == 3:  # Display All Commands & Descriptions
+        elif choice == 4:  # Display All Commands & Descriptions
             try:
                 display_all_commands()
             except Exception as e:
                 print(f"Error: {e}")
-        elif choice == 4:  # Display Available Celestial Objects
+        elif choice == 5:  # Display Available Celestial Objects
             try:
                 display_objects()
             except Exception as e:
                 print(f"Error: {e}")
-        elif choice == 5:  # Check Internet Connection
+        elif choice == 6:  # Check Internet Connection
             try:
                 status = SCh.check_internet_connection()
                 print(f"Internet Connection: {status.message}")
             except Exception as e:
                 print(f"Error: {e}")
-        elif choice == 6:
+        elif choice == 7:
             return Menu.MAIN
         return Menu.DISPLAY  # Stay in display menu
     elif current_menu == Menu.OBJECT_MANAGEMENT:
