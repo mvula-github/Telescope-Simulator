@@ -179,18 +179,26 @@ def handle_menu_choice(current_menu: Menu, choice: int, user: dict) -> Optional[
     if current_menu == Menu.MAIN:
         if choice == 1:  # Telescope Control
             return Menu.TELESCOPE
-        elif choice == 2 and role == 'admin':  # Configure Settings
-            return Menu.CONFIG
-        elif choice == 3 and role == 'admin':  # Coordinate System
-            return Menu.COORDS
-        elif choice == 4 and role == 'admin':  # User Management
-            return Menu.USER_MANAGEMENT
-        elif choice == 5:  # Display Data
-            return Menu.DISPLAY
-        elif choice == 6 and role == 'admin':  # Object Management
-            return Menu.OBJECT_MANAGEMENT
-        elif choice == 7:  # Exit
-            return None
+        elif role == 'admin':
+            # Admin menu structure
+            if choice == 2:  # Configure Settings
+                return Menu.CONFIG
+            elif choice == 3:  # Coordinate System
+                return Menu.COORDS
+            elif choice == 4:  # User Management
+                return Menu.USER_MANAGEMENT
+            elif choice == 5:  # Display Data
+                return Menu.DISPLAY
+            elif choice == 6:  # Object Management
+                return Menu.OBJECT_MANAGEMENT
+            elif choice == 7:  # Exit
+                return None
+        elif role == 'operator':
+            # Operator menu structure
+            if choice == 2:  # Display Data
+                return Menu.DISPLAY
+            elif choice == 3:  # Exit
+                return None
         else:
             print("Invalid choice or insufficient permissions")
             return None
