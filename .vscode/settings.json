@@ -1,0 +1,25 @@
+{
+  "cSpell.words": [
+    "altaz",
+    "astropy",
+    "astroquery",
+    "celesti",
+    "colnames",
+    "Coppelia",
+    "ddmmss",
+    "dotenv",
+    "geocoder",
+    "hourangle",
+    "icrs",
+    "ipac",
+    "jsonify",
+    "latlng",
+    "levelname",
+    "loguru",
+    "obstime",
+    "psycopg",
+    "pytest",
+    "radec",
+    "werkzeug"
+  ]
+}

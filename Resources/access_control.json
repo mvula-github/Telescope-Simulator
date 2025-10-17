@@ -1,0 +1,69 @@
+{
+  "permissions": {
+    "operator": {
+      "allowed_data": [
+        "telescope_data",
+        "system_logs",
+        "celestial_objects"
+      ],
+      "allowed_actions": [
+        "view_data",
+        "export_own_data"
+      ],
+      "restrictions": {
+        "max_export_size": 1000,
+        "timeframe_limit": 168,
+        "no_user_data_access": true,
+        "no_config_access": true
+      }
+    },
+    "admin": {
+      "allowed_data": [
+        "telescope_data",
+        "system_logs",
+        "user_data",
+        "celestial_objects",
+        "system_config"
+      ],
+      "allowed_actions": [
+        "view_data",
+        "export_data",
+        "configure_display",
+        "manage_users"
+      ],
+      "restrictions": {
+        "max_export_size": 10000,
+        "timeframe_limit": 8760,
+        "no_security_logs": true
+      }
+    },
+    "super_admin": {
+      "allowed_data": [
+        "telescope_data",
+        "system_logs",
+        "user_data",
+        "celestial_objects",
+        "system_config",
+        "security_logs"
+      ],
+      "allowed_actions": [
+        "view_data",
+        "export_data",
+        "configure_display",
+        "manage_users",
+        "manage_permissions",
+        "system_maintenance"
+      ],
+      "restrictions": {
+        "max_export_size": -1,
+        "timeframe_limit": -1
+      }
+    }
+  },
+  "security_settings": {
+    "session_timeout": 30,
+    "max_concurrent_sessions": 3,
+    "audit_all_actions": true,
+    "require_reauthentication": false
+  }
+}

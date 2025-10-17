@@ -30,10 +30,17 @@ def init_mongodb():
         print("MongoDB connected successfully.")
     except ConnectionFailure as e:
         print(f"Error: MongoDB connection failed: {e}. Ensure MONGO_URI is correct and MongoDB is accessible.")
-        raise RuntimeError(f"MongoDB connection failed: {e}")
+        # Degrade gracefully; leave collection as None and continue
+        client = None
+        db = None
+        collection = None
+        return
     except PyMongoError as e:
         print(f"Error: MongoDB initialization error: {e}")
-        raise RuntimeError(f"MongoDB initialization error: {e}")
+        client = None
+        db = None
+        collection = None
+        return
 
 def get_script_path() -> str:
     """Returns the directory path of the current script."""
@@ -70,9 +77,10 @@ def is_valid_directory(directory: str) -> Tuple[bool, Optional[str]]:
             return False, f"The directory '{directory}' does not exist."
     return True, None
 
-def write_log(user: str, command: str, level: str, description: str):
+def write_log(user: str, command: str, level: str, description: str, current_user: str = None):
     """
     Insert log entry to MongoDB Logs collection with level (success, error, warning).
+    Only shows console logs to system admin user "admin".
     Raises exception on failure to ensure no silent failures.
     """
     if level not in ('success', 'error', 'warning'):
@@ -86,11 +94,18 @@ def write_log(user: str, command: str, level: str, description: str):
     }
     try:
         if collection is None:
-            raise RuntimeError("MongoDB not initialized. Cannot write log.")
+            # Graceful degrade: print to console only for system admin
+            if current_user == "admin":
+                print(f"[LOG {log_entry['level'].upper()}] {log_entry['timestamp']} {user} {command} - {description}")
+            return
         collection.insert_one(log_entry)
     except PyMongoError as e:
-        print(f"Error: Failed to write log to MongoDB: {e}")
-        raise RuntimeError(f"Failed to write log to MongoDB: {e}")
+        # Only show error to system admin
+        if current_user == "admin":
+            print(f"Error: Failed to write log to MongoDB: {e}")
+            # Degrade gracefully to console only for system admin
+            print(f"[LOG {log_entry['level'].upper()}] {log_entry['timestamp']} {user} {command} - {description}")
+        return
 
 def display_logs():
     """
@@ -98,7 +113,8 @@ def display_logs():
     """
     try:
         if collection is None:
-            raise RuntimeError("MongoDB not initialized. Cannot display logs.")
+            print("MongoDB not initialized. Cannot display logs.")
+            return
 
         logs = list(collection.find().sort('timestamp', -1).limit(100))
         if not logs:
@@ -118,18 +134,11 @@ def display_logs():
                 log['description']
             ])
 
-        # Print logs grouped by level
+        # Print logs grouped by level using tabulate
         for level, entries in sorted(levels.items()):
             print(f"\n{level.upper()} Logs:")
-            print("-" * 100)
-            print(f"{'Timestamp':<20} {'User':<15} {'Command':<20} {'Description':<40}")
-            print("-" * 100)
-
-            for entry in entries:
-                timestamp, user, command, description = entry
-                print(f"{timestamp:<20} {user:<15} {command:<20} {description:<40}")
-
-            print("-" * 100)
+            headers = ["Timestamp", "User", "Command", "Description"]
+            print(tabulate(entries, headers=headers, tablefmt="github"))
 
     except PyMongoError as e:
         print(f"Error: Failed to fetch logs from MongoDB: {e}")

@@ -1,4 +1,12 @@
-venv/
+# Ignore virtual environment
+.venv/
 venv
+
+# Ignore environment variables
 .env
 env
+
+# Python cache files
+__pycache__/
+.vscode
+

@@ -1,4 +1,14 @@
 import unittest
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Ensure required env vars for tests BEFORE importing auth
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("JWT_ALGORITHM", "HS256")
+os.environ.setdefault("TOKEN_EXPIRY_HOURS", "24")
+
 from users.middleware.auth import (
     generate_jwt,
     verify_jwt,
@@ -8,12 +18,7 @@ from users.middleware.auth import (
 from werkzeug.security import generate_password_hash
 import jwt
 import time
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Mock config (should match your auth.py config)
 SECRET_KEY = os.getenv("SECRET_KEY") 
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
 
@@ -31,7 +36,7 @@ class TestAuthentication(unittest.TestCase):
             self.username: {
                 "id": self.user_id,
                 "username": self.username,
-                "password_hash": self.hashed_password
+                "password": self.hashed_password
             }
         }
 
@@ -63,19 +68,19 @@ class TestAuthentication(unittest.TestCase):
 
     def test_authenticate_user_success(self):
         # Test successful authentication returns a token and no error
-        token, error = authenticate_user(self.username, self.password, self.username)
+        token, error = authenticate_user(self.username, self.password, self.getUsername)
         self.assertIsNotNone(token)
         self.assertIsNone(error)
 
     def test_authenticate_user_wrong_password(self):
         # Test authentication fails with wrong password
-        token, error = authenticate_user(self.username, "wrongPassword", self.username)
+        token, error = authenticate_user(self.username, "wrongPassword", self.getUsername)
         self.assertIsNone(token)
         self.assertEqual(error, "Invalid password")
 
     def test_authenticate_user_unknown_username(self):
         # Test authentication fails with unknown username
-        token, error = authenticate_user("unknown", self.password, self.username)
+        token, error = authenticate_user("unknown", self.password, self.getUsername)
         self.assertIsNone(token)
         self.assertEqual(error, "User not found")
 

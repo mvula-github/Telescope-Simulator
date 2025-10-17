@@ -1,0 +1,183 @@
+import getpass
+from datetime import datetime
+from pymongo import MongoClient
+from pymongo.errors import PyMongoError
+from dotenv import load_dotenv
+import os
+import core.file_handling as FH
+from werkzeug.security import generate_password_hash
+
+
+# Load .env
+load_dotenv()
+
+# MongoDB setup for Users collection
+MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
+DB_NAME = os.getenv('DB_NAME', 'celestiCodeServerDB')
+try:
+    client = MongoClient(MONGO_URI)
+    db = client[DB_NAME]
+    users_collection = db['users']
+except PyMongoError as e:
+    print(f"Error: Failed to connect to MongoDB for Users collection: {e}")
+    users_collection = None
+
+
+# Service-layer, non-interactive helpers
+def create_user_service(username: str, password: str, role: str, name: str, surname: str):
+    if users_collection is None:
+        raise RuntimeError("Database not initialized.")
+    if role not in ['admin', 'operator']:
+        raise ValueError("Invalid role. Must be 'admin' or 'operator'.")
+    if users_collection.find_one({"username": username}):
+        raise ValueError("Username already exists.")
+    hashed_password = generate_password_hash(password)
+    user_data = {
+        'name': name,
+        'surname': surname,
+        'username': username,
+        'password': hashed_password,
+        'role': role,
+        'created_at': datetime.now(),
+        'updated_at': datetime.now()
+    }
+    users_collection.insert_one(user_data)
+    FH.write_log("admin", "Create User", "success", f"Created user '{username}' with role '{role}'")
+    return True
+
+def list_users_service():
+    if users_collection is None:
+        raise RuntimeError("Database not initialized.")
+    return list(users_collection.find({}, {"password": 0}))
+
+def update_user_service(username: str, name: str = None, surname: str = None, role: str = None, password: str = None):
+    if users_collection is None:
+        raise RuntimeError("Database not initialized.")
+    update_data = { 'updated_at': datetime.now() }
+    if name is not None:
+        update_data['name'] = name
+    if surname is not None:
+        update_data['surname'] = surname
+    if role is not None:
+        if role not in ['admin', 'operator']:
+            raise ValueError("Invalid role. Must be 'admin' or 'operator'.")
+        update_data['role'] = role
+    if password:
+        update_data['password'] = generate_password_hash(password)
+    if len(update_data.keys()) == 1:
+        return False
+    res = users_collection.update_one({"username": username}, {"$set": update_data})
+    if res.matched_count == 0:
+        raise ValueError("User not found")
+    FH.write_log("admin", "Update User", "success", f"Updated user '{username}'")
+    return True
+
+def delete_user_service(username: str):
+    if users_collection is None:
+        raise RuntimeError("Database not initialized.")
+    res = users_collection.delete_one({"username": username})
+    if res.deleted_count == 0:
+        raise ValueError("User not found")
+    FH.write_log("admin", "Delete User", "success", f"Deleted user '{username}'")
+    return True
+
+# Create a new user (interactive)
+def create_user():
+    if users_collection is None:
+        print("Database not initialized.")
+        return
+    try:
+        name = input("Enter name: ")
+        surname = input("Enter surname: ")
+        username = input("Enter username: ")
+        password = getpass.getpass("Enter password: ")
+        role = input("Enter role (admin/operator): ").lower()
+        if role not in ['admin', 'operator']:
+            print("Invalid role. Must be 'admin' or 'operator'.")
+            return
+        hashed_password = generate_password_hash(password)
+        user_data = {
+            'name': name,
+            'surname': surname,
+            'username': username,
+            'password': hashed_password,  # Use 'password' field
+            'role': role,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+        users_collection.insert_one(user_data)
+        print(f"User '{username}' created successfully.")
+        FH.write_log("admin", "Create User", "success", f"Created user '{username}' with role '{role}'")
+    except PyMongoError as e:
+        print(f"Error creating user: {e}")
+        FH.write_log("admin", "Create User", "error", f"Failed to create user: {e}")
+
+# List all users (interactive)
+def list_users():
+    if users_collection is None:
+        print("Database not initialized.")
+        return []
+    try:
+        users = list(users_collection.find())
+        print("\nUsers:")
+        for user in users:
+            print(f"Username: {user['username']}, Name: {user['name']} {user['surname']}, Role: {user['role']}")
+        FH.write_log("admin", "List Users", "success", "Listed all users")
+        return users
+    except PyMongoError as e:
+        print(f"Error listing users: {e}")
+        FH.write_log("admin", "List Users", "error", f"Failed to list users: {e}")
+        return []
+
+# Update an existing user (interactive)
+def update_user():
+    if users_collection is None:
+        print("Database not initialized.")
+        return
+    try:
+        username = input("Enter username to update: ")
+        user = users_collection.find_one({"username": username})
+        if not user:
+            print(f"User '{username}' not found.")
+            return
+        print(f"Current details: Name: {user['name']}, Surname: {user['surname']}, Role: {user['role']}")
+        
+        name = input("Enter new name (press enter to keep current): ") or user['name']
+        surname = input("Enter new surname (press enter to keep current): ") or user['surname']
+        role = input("Enter new role (admin/operator, press enter to keep current): ").lower() or user['role']
+        if role and role not in ['admin', 'operator']:
+            print("Invalid role. Must be 'admin' or 'operator'.")
+            return
+        password = getpass.getpass("Enter new password (press enter to keep current): ")
+        update_data = {
+            'name': name,
+            'surname': surname,
+            'role': role,
+            'updated_at': datetime.now()
+        }
+        if password:
+            update_data['password'] = generate_password_hash(password)  # Use 'password' field
+        users_collection.update_one({"username": username}, {"$set": update_data})
+        print(f"User '{username}' updated successfully.")
+        FH.write_log("admin", "Update User", "success", f"Updated user '{username}'")
+    except PyMongoError as e:
+        print(f"Error updating user: {e}")
+        FH.write_log("admin", "Update User", "error", f"Failed to update user: {e}")
+
+# Delete an existing user (interactive)
+def delete_user():
+    if users_collection is None:
+        print("Database not initialized.")
+        return
+    try:
+        username = input("Enter username to delete: ")
+        user = users_collection.find_one({"username": username})
+        if not user:
+            print(f"User '{username}' not found.")
+            return
+        users_collection.delete_one({"username": username})
+        print(f"User '{username}' deleted successfully.")
+        FH.write_log("admin", "Delete User", "success", f"Deleted user '{username}'")
+    except PyMongoError as e:
+        print(f"Error deleting user: {e}")
+        FH.write_log("admin", "Delete User", "error", f"Failed to delete user: {e}")
