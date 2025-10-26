@@ -74,9 +74,9 @@ class EnhancedLogger:
             self.mongo_collection.create_index([('category', 1), ('timestamp', -1)], background=True)
             self.mongo_collection.create_index([('user', 1), ('timestamp', -1)], background=True)
             
-            print("✅ Enhanced MongoDB logging initialized")
+            print("Enhanced MongoDB logging initialized")
         except Exception as e:
-            print(f"⚠️  MongoDB logging unavailable: {e}")
+            print(f"MongoDB logging unavailable: {e}")
             self.mongo_client = None
             self.mongo_db = None
             self.mongo_collection = None
@@ -107,9 +107,9 @@ class EnhancedLogger:
             file_handler.setFormatter(formatter)
             self.file_logger.addHandler(file_handler)
             
-            print("✅ File logging initialized")
+            print("File logging initialized")
         except Exception as e:
-            print(f"⚠️  File logging unavailable: {e}")
+            print(f"File logging unavailable: {e}")
             self.file_logger = None
     
     def _init_console_logging(self):
@@ -129,9 +129,9 @@ class EnhancedLogger:
             console_handler.setFormatter(formatter)
             self.console_logger.addHandler(console_handler)
             
-            print("✅ Console logging initialized")
+            print("Console logging initialized")
         except Exception as e:
-            print(f"⚠️  Console logging unavailable: {e}")
+            print(f"Console logging unavailable: {e}")
     
     def log(self, 
             level: LogLevel, 
@@ -182,7 +182,7 @@ class EnhancedLogger:
             try:
                 self.mongo_collection.insert_one(log_entry)
             except PyMongoError as e:
-                print(f"❌ MongoDB logging failed: {e}")
+                print(f"MongoDB logging failed: {e}")
     
     def _log_to_file(self, log_entry: Dict[str, Any]):
         """Log to file"""
@@ -200,7 +200,7 @@ class EnhancedLogger:
                 python_level = self._map_to_python_level(log_entry['level'])
                 self.file_logger.log(python_level, log_message)
             except Exception as e:
-                print(f"❌ File logging failed: {e}")
+                print(f"File logging failed: {e}")
     
     def _log_to_console(self, log_entry: Dict[str, Any]):
         """Log to console for important messages"""
@@ -213,7 +213,7 @@ class EnhancedLogger:
                 python_level = self._map_to_python_level(log_entry['level'])
                 self.console_logger.log(python_level, log_message)
             except Exception as e:
-                print(f"❌ Console logging failed: {e}")
+                print(f"Console logging failed: {e}")
     
     def _map_to_python_level(self, level: str) -> int:
         """Map our log levels to Python logging levels"""
@@ -308,4 +308,4 @@ if __name__ == "__main__":
     logger.log_auth(LogLevel.SUCCESS, "User logged in successfully", "admin")
     logger.log_telescope(LogLevel.INFO, "Telescope moved to coordinates", "admin", "move_tel", {"alt": 45, "az": 180})
     logger.log_security(LogLevel.WARNING, "Multiple failed login attempts", "admin")
-    print("✅ Enhanced logging system test completed")
+    print("Enhanced logging system test completed")

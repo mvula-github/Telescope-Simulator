@@ -1,6 +1,6 @@
 # Telescope Simulator - Setup Guide
 
-## 📁 Package Structure
+## Package Structure
 
 ```
 Telescope-Simulator/
@@ -47,7 +47,7 @@ Telescope-Simulator/
 └── docs/                         # Documentation
 ```
 
-## 🚀 How to Run
+## How to Run
 
 ### Option 1: Direct Run
 
@@ -67,15 +67,15 @@ python run.py
 python test_imports.py
 ```
 
-## ✅ What's Fixed
+## What's Fixed
 
-1. **✅ Import Issues**: All import errors between files are resolved
-2. **✅ Package Structure**: Professional Python package layout
-3. **✅ Module Organization**: Clear separation of concerns
-4. **✅ Scalability**: Easy to add new features and modules
-5. **✅ Testing**: Each package can be tested independently
+1. **Import Issues**: All import errors between files are resolved
+2. **Package Structure**: Professional Python package layout
+3. **Module Organization**: Clear separation of concerns
+4. **Scalability**: Easy to add new features and modules
+5. **Testing**: Each package can be tested independently
 
-## 🔧 Key Changes Made
+## Key Changes Made
 
 1. **Moved Files**: All Python files moved to appropriate packages
 2. **Fixed Imports**: Updated all import statements to use new structure
@@ -83,14 +83,14 @@ python test_imports.py
 4. **Updated Main.py**: Uses new package structure with fallback
 5. **Added Test Scripts**: Import testing and run scripts
 
-## 📋 Next Steps
+## Next Steps
 
 1. **Test the Application**: Run `python test_imports.py` to verify everything works
 2. **Run the Simulator**: Use `python main.py` or `python run.py`
 3. **Add Features**: Use the new structure to add web interfaces, APIs, etc.
 4. **Improve Testing**: Add more comprehensive tests in the `tests/` directory
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
 If you encounter any issues:
 
@@ -98,7 +98,7 @@ If you encounter any issues:
 2. **Missing Dependencies**: Check `requirements.txt` and install missing packages
 3. **Configuration Issues**: Verify your `.env` file and `Resources/config.json`
 
-## 🎯 Benefits
+## Benefits
 
 - **No More Import Errors**: Clean, working package structure
 - **Professional Layout**: Industry-standard Python project organization

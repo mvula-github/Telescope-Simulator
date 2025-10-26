@@ -23,7 +23,7 @@ class DisplayMenuManager:
         """Show the main display options menu"""
         while True:
             print(f"\n{'='*60}")
-            print("📊 DISPLAY DATA OPTIONS")
+            print("DISPLAY DATA OPTIONS")
             print(f"{'='*60}")
             print(f"Current User: {user['username']} ({user.get('role', 'operator')})")
             print(f"Current Format: {self.current_format or self.data_manager.display_config['default_format']}")
@@ -70,10 +70,10 @@ class DisplayMenuManager:
                 elif choice == 10:
                     break
                 else:
-                    print("❌ Invalid choice. Please try again.")
+                    print("Invalid choice. Please try again.")
                     
             except ValueError:
-                print("❌ Invalid input. Please enter a number.")
+                print("Invalid input. Please enter a number.")
             except KeyboardInterrupt:
                 print("\n\nExiting display menu...")
                 break
@@ -81,7 +81,7 @@ class DisplayMenuManager:
     def _view_telescope_data(self, user: Dict[str, Any] = None) -> None:
         """View telescope operational data"""
         print(f"\n{'='*50}")
-        print("🔭 TELESCOPE DATA VIEWER")
+        print("TELESCOPE DATA VIEWER")
         print(f"{'='*50}")
         
         # Get format choice
@@ -99,7 +99,7 @@ class DisplayMenuManager:
     def _view_system_logs(self, user: Dict[str, Any] = None) -> None:
         """View system logs"""
         print(f"\n{'='*50}")
-        print("📋 SYSTEM LOGS VIEWER")
+        print("SYSTEM LOGS VIEWER")
         print(f"{'='*50}")
         
         # Get format choice
@@ -117,7 +117,7 @@ class DisplayMenuManager:
     def _view_user_activity(self, user: Dict[str, Any] = None) -> None:
         """View user activity summary"""
         print(f"\n{'='*50}")
-        print("👥 USER ACTIVITY VIEWER")
+        print("USER ACTIVITY VIEWER")
         print(f"{'='*50}")
         
         # Get format choice
@@ -135,7 +135,7 @@ class DisplayMenuManager:
     def _view_celestial_objects(self, user: Dict[str, Any] = None) -> None:
         """View celestial objects data"""
         print(f"\n{'='*50}")
-        print("🌟 CELESTIAL OBJECTS VIEWER")
+        print("CELESTIAL OBJECTS VIEWER")
         print(f"{'='*50}")
         
         # Get format choice
@@ -153,7 +153,7 @@ class DisplayMenuManager:
     def _view_system_status(self, user: Dict[str, Any] = None) -> None:
         """View system status"""
         print(f"\n{'='*50}")
-        print("⚙️ SYSTEM STATUS VIEWER")
+        print("SYSTEM STATUS VIEWER")
         print(f"{'='*50}")
         
         # Get format choice
@@ -171,7 +171,7 @@ class DisplayMenuManager:
     def _configure_display_options(self) -> None:
         """Configure display options"""
         print(f"\n{'='*50}")
-        print("⚙️ DISPLAY CONFIGURATION")
+        print("DISPLAY CONFIGURATION")
         print(f"{'='*50}")
         
         current_config = self.data_manager.get_display_options()
@@ -218,15 +218,15 @@ class DisplayMenuManager:
                 elif choice == 10:
                     break
                 else:
-                    print("❌ Invalid choice. Please try again.")
+                    print("Invalid choice. Please try again.")
                     
             except ValueError:
-                print("❌ Invalid input. Please enter a number.")
+                print("Invalid input. Please enter a number.")
     
     def _set_data_filters(self) -> None:
         """Set data filters"""
         print(f"\n{'='*50}")
-        print("🔍 DATA FILTERS")
+        print("DATA FILTERS")
         print(f"{'='*50}")
         
         while True:
@@ -255,19 +255,19 @@ class DisplayMenuManager:
                     self._set_object_name_filter()
                 elif choice == 6:
                     self.current_filters = {}
-                    print("✅ All filters cleared")
+                    print("All filters cleared")
                 elif choice == 7:
                     break
                 else:
-                    print("❌ Invalid choice. Please try again.")
+                    print("Invalid choice. Please try again.")
                     
             except ValueError:
-                print("❌ Invalid input. Please enter a number.")
+                print("Invalid input. Please enter a number.")
     
     def _export_data_menu(self, user: Dict[str, Any] = None) -> None:
         """Export data menu"""
         print(f"\n{'='*50}")
-        print("📁 EXPORT DATA")
+        print("EXPORT DATA")
         print(f"{'='*50}")
         
         data_types = self.data_manager.get_available_data_types()
@@ -279,12 +279,12 @@ class DisplayMenuManager:
         try:
             data_type = input("\nEnter data type to export: ").strip()
             if data_type not in data_types:
-                print(f"❌ Invalid data type. Available: {', '.join(data_types)}")
+                print(f"Invalid data type. Available: {', '.join(data_types)}")
                 return
             
             format_type = input("Enter export format: ").strip()
             if format_type not in formats:
-                print(f"❌ Invalid format. Available: {', '.join(formats)}")
+                print(f"Invalid format. Available: {', '.join(formats)}")
                 return
             
             filename = input("Enter filename (or press Enter for auto-generated): ").strip()
@@ -300,7 +300,7 @@ class DisplayMenuManager:
     def _quick_reports_menu(self, user: Dict[str, Any] = None) -> None:
         """Quick reports menu"""
         print(f"\n{'='*50}")
-        print("📊 QUICK REPORTS")
+        print("QUICK REPORTS")
         print(f"{'='*50}")
         
         while True:
@@ -328,10 +328,10 @@ class DisplayMenuManager:
                 elif choice == 6:
                     break
                 else:
-                    print("❌ Invalid choice. Please try again.")
+                    print("Invalid choice. Please try again.")
                     
             except ValueError:
-                print("❌ Invalid input. Please enter a number.")
+                print("Invalid input. Please enter a number.")
     
     def _get_format_choice(self) -> Optional[str]:
         """Get format choice from user"""
@@ -346,7 +346,7 @@ class DisplayMenuManager:
         if format_choice in formats:
             return format_choice
         else:
-            print(f"❌ Invalid format. Using default: {self.data_manager.display_config['default_format']}")
+            print(f"Invalid format. Using default: {self.data_manager.display_config['default_format']}")
             return self.data_manager.display_config['default_format']
     
     def _ask_save_data(self, data_type: str, format_type: str) -> None:
@@ -373,7 +373,7 @@ class DisplayMenuManager:
         if new_format in formats:
             self.data_manager.update_display_option("default_format", new_format)
         else:
-            print(f"❌ Invalid format. Available: {', '.join(formats)}")
+            print(f"Invalid format. Available: {', '.join(formats)}")
     
     def _change_table_style(self) -> None:
         """Change table style"""
@@ -384,7 +384,7 @@ class DisplayMenuManager:
         if new_style in styles:
             self.data_manager.update_display_option("table_style", new_style)
         else:
-            print(f"❌ Invalid style. Available: {', '.join(styles)}")
+            print(f"Invalid style. Available: {', '.join(styles)}")
     
     def _change_max_rows(self) -> None:
         """Change maximum rows to display"""
@@ -393,16 +393,16 @@ class DisplayMenuManager:
             if 10 <= new_max <= 1000:
                 self.data_manager.update_display_option("max_rows", new_max)
             else:
-                print("❌ Maximum rows must be between 10 and 1000")
+                print("Maximum rows must be between 10 and 1000")
         except ValueError:
-            print("❌ Invalid input. Please enter a number.")
+            print("Invalid input. Please enter a number.")
     
     def _toggle_timestamps(self) -> None:
         """Toggle timestamp display"""
         current = self.data_manager.display_config["show_timestamps"]
         new_value = not current
         self.data_manager.update_display_option("show_timestamps", new_value)
-        print(f"✅ Timestamps {'enabled' if new_value else 'disabled'}")
+        print(f"Timestamps {'enabled' if new_value else 'disabled'}")
     
     def _change_date_format(self) -> None:
         """Change date format"""
@@ -420,14 +420,14 @@ class DisplayMenuManager:
         current = self.data_manager.display_config["color_output"]
         new_value = not current
         self.data_manager.update_display_option("color_output", new_value)
-        print(f"✅ Color output {'enabled' if new_value else 'disabled'}")
+        print(f"Color output {'enabled' if new_value else 'disabled'}")
     
     def _toggle_compact_mode(self) -> None:
         """Toggle compact mode"""
         current = self.data_manager.display_config["compact_mode"]
         new_value = not current
         self.data_manager.update_display_option("compact_mode", new_value)
-        print(f"✅ Compact mode {'enabled' if new_value else 'disabled'}")
+        print(f"Compact mode {'enabled' if new_value else 'disabled'}")
     
     def _change_export_path(self) -> None:
         """Change export path"""
@@ -465,7 +465,7 @@ class DisplayMenuManager:
             for key, value in default_config.items():
                 self.data_manager.update_display_option(key, value)
             
-            print("✅ Configuration reset to defaults")
+            print("Configuration reset to defaults")
     
     # Filter methods
     def _set_timeframe_filter(self) -> None:
@@ -474,21 +474,21 @@ class DisplayMenuManager:
             hours = int(input("Enter timeframe in hours (1-168): "))
             if 1 <= hours <= 168:
                 self.current_filters["timeframe"] = hours
-                print(f"✅ Timeframe set to {hours} hours")
+                print(f"Timeframe set to {hours} hours")
             else:
-                print("❌ Timeframe must be between 1 and 168 hours")
+                print("Timeframe must be between 1 and 168 hours")
         except ValueError:
-            print("❌ Invalid input. Please enter a number.")
+            print("Invalid input. Please enter a number.")
     
     def _set_user_filter(self) -> None:
         """Set user filter"""
         user = input("Enter username to filter by (or 'clear' to remove): ").strip()
         if user.lower() == 'clear':
             self.current_filters.pop("user", None)
-            print("✅ User filter cleared")
+            print("User filter cleared")
         elif user:
             self.current_filters["user"] = user
-            print(f"✅ User filter set to: {user}")
+            print(f"User filter set to: {user}")
     
     def _set_level_filter(self) -> None:
         """Set log level filter"""
@@ -498,41 +498,41 @@ class DisplayMenuManager:
         level_input = input("Enter levels (comma-separated, or 'clear' to remove): ").strip()
         if level_input.lower() == 'clear':
             self.current_filters.pop("level", None)
-            print("✅ Level filter cleared")
+            print("Level filter cleared")
         elif level_input:
             selected_levels = [level.strip() for level in level_input.split(',')]
             valid_levels = [level for level in selected_levels if level in levels]
             if valid_levels:
                 self.current_filters["level"] = valid_levels
-                print(f"✅ Level filter set to: {', '.join(valid_levels)}")
+                print(f"Level filter set to: {', '.join(valid_levels)}")
             else:
-                print(f"❌ Invalid levels. Available: {', '.join(levels)}")
+                print(f"Invalid levels. Available: {', '.join(levels)}")
     
     def _set_command_filter(self) -> None:
         """Set command filter"""
         command = input("Enter command pattern to filter by (or 'clear' to remove): ").strip()
         if command.lower() == 'clear':
             self.current_filters.pop("command", None)
-            print("✅ Command filter cleared")
+            print("Command filter cleared")
         elif command:
             self.current_filters["command"] = command
-            print(f"✅ Command filter set to: {command}")
+            print(f"Command filter set to: {command}")
     
     def _set_object_name_filter(self) -> None:
         """Set object name filter"""
         name = input("Enter object name pattern to filter by (or 'clear' to remove): ").strip()
         if name.lower() == 'clear':
             self.current_filters.pop("name", None)
-            print("✅ Object name filter cleared")
+            print("Object name filter cleared")
         elif name:
             self.current_filters["name"] = name
-            print(f"✅ Object name filter set to: {name}")
+            print(f"Object name filter set to: {name}")
     
     # Quick report methods
     def _generate_daily_summary(self, user: Dict[str, Any] = None) -> None:
         """Generate daily activity summary"""
         print(f"\n{'='*60}")
-        print("📊 DAILY ACTIVITY SUMMARY")
+        print("DAILY ACTIVITY SUMMARY")
         print(f"{'='*60}")
         
         # Set timeframe to 24 hours for daily summary
@@ -550,7 +550,7 @@ class DisplayMenuManager:
     def _generate_error_analysis(self, user: Dict[str, Any] = None) -> None:
         """Generate error analysis report"""
         print(f"\n{'='*60}")
-        print("❌ ERROR ANALYSIS REPORT")
+        print("ERROR ANALYSIS REPORT")
         print(f"{'='*60}")
         
         # Set filters for errors only
@@ -563,7 +563,7 @@ class DisplayMenuManager:
     def _generate_telescope_stats(self, user: Dict[str, Any] = None) -> None:
         """Generate telescope usage statistics"""
         print(f"\n{'='*60}")
-        print("🔭 TELESCOPE USAGE STATISTICS")
+        print("TELESCOPE USAGE STATISTICS")
         print(f"{'='*60}")
         
         telescope_data = self.data_manager.display_telescope_data("summary", self.current_filters, user)
@@ -572,7 +572,7 @@ class DisplayMenuManager:
     def _generate_user_performance(self, user: Dict[str, Any] = None) -> None:
         """Generate user performance report"""
         print(f"\n{'='*60}")
-        print("👥 USER PERFORMANCE REPORT")
+        print("USER PERFORMANCE REPORT")
         print(f"{'='*60}")
         
         user_data = self.data_manager.display_user_activity("detailed", self.current_filters, user)
@@ -581,7 +581,7 @@ class DisplayMenuManager:
     def _generate_system_health(self, user: Dict[str, Any] = None) -> None:
         """Generate system health check"""
         print(f"\n{'='*60}")
-        print("⚙️ SYSTEM HEALTH CHECK")
+        print("SYSTEM HEALTH CHECK")
         print(f"{'='*60}")
         
         system_data = self.data_manager.display_system_status("detailed", user)

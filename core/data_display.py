@@ -54,9 +54,9 @@ class DataDisplayManager:
             self.mongo_client = MongoClient(MONGO_URI)
             self.mongo_client.admin.command('ping')
             self.mongo_db = self.mongo_client[DB_NAME]
-            print("✅ Data display manager connected to MongoDB")
+            print("Data display manager connected to MongoDB")
         except Exception as e:
-            print(f"❌ Data display manager MongoDB connection failed: {e}")
+            print(f"Data display manager MongoDB connection failed: {e}")
             self.mongo_client = None
             self.mongo_db = None
     
@@ -99,7 +99,7 @@ class DataDisplayManager:
                     json.dump(default_config, f, indent=2)
                 return default_config
         except Exception as e:
-            print(f"⚠️  Warning: Could not load display config: {e}")
+            print(f"Warning: Could not load display config: {e}")
             return default_config
     
     def save_display_config(self):
@@ -108,18 +108,18 @@ class DataDisplayManager:
             config_file = "Resources/display_config.json"
             with open(config_file, 'w') as f:
                 json.dump(self.display_config, f, indent=2)
-            print("✅ Display configuration saved")
+            print("Display configuration saved")
         except Exception as e:
-            print(f"❌ Error saving display config: {e}")
+            print(f"Error saving display config: {e}")
     
     def update_display_option(self, option: str, value: Any):
         """Update a display configuration option"""
         if option in self.display_config:
             self.display_config[option] = value
             self.save_display_config()
-            print(f"✅ Display option '{option}' updated to '{value}'")
+            print(f"Display option '{option}' updated to '{value}'")
         else:
-            print(f"❌ Unknown display option: {option}")
+            print(f"Unknown display option: {option}")
     
     def get_display_options(self) -> Dict[str, Any]:
         """Get current display options"""
@@ -128,13 +128,13 @@ class DataDisplayManager:
     def display_telescope_data(self, format_type: str = None, filters: Dict[str, Any] = None, user: Dict[str, Any] = None) -> str:
         """Display telescope operational data"""
         if not self.mongo_db:
-            return "❌ Database connection not available"
+            return "Database connection not available"
         
         # Check permissions
         if user:
             has_permission, reason = access_control_manager.check_permission(user, "telescope_data", "view_data")
             if not has_permission:
-                return f"❌ Access denied: {reason}"
+                return f"Access denied: {reason}"
         
         format_type = format_type or self.display_config["default_format"]
         filters = filters or {}
@@ -166,18 +166,18 @@ class DataDisplayManager:
             return self._format_data(logs, format_type, "Telescope Operations")
             
         except PyMongoError as e:
-            return f"❌ Error retrieving telescope data: {e}"
+            return f"Error retrieving telescope data: {e}"
     
     def display_system_logs(self, format_type: str = None, filters: Dict[str, Any] = None, user: Dict[str, Any] = None) -> str:
         """Display system logs with filtering options"""
         if not self.mongo_db:
-            return "❌ Database connection not available"
+            return "Database connection not available"
         
         # Check permissions
         if user:
             has_permission, reason = access_control_manager.check_permission(user, "system_logs", "view_data")
             if not has_permission:
-                return f"❌ Access denied: {reason}"
+                return f"Access denied: {reason}"
         
         format_type = format_type or self.display_config["default_format"]
         filters = filters or {}
@@ -212,18 +212,18 @@ class DataDisplayManager:
             return self._format_data(logs, format_type, "System Logs")
             
         except PyMongoError as e:
-            return f"❌ Error retrieving system logs: {e}"
+            return f"Error retrieving system logs: {e}"
     
     def display_user_activity(self, format_type: str = None, filters: Dict[str, Any] = None, user: Dict[str, Any] = None) -> str:
         """Display user activity summary"""
         if not self.mongo_db:
-            return "❌ Database connection not available"
+            return "Database connection not available"
         
         # Check permissions
         if user:
             has_permission, reason = access_control_manager.check_permission(user, "user_data", "view_data")
             if not has_permission:
-                return f"❌ Access denied: {reason}"
+                return f"Access denied: {reason}"
         
         format_type = format_type or self.display_config["default_format"]
         filters = filters or {}
@@ -272,18 +272,18 @@ class DataDisplayManager:
             return self._format_data(formatted_data, format_type, "User Activity Summary")
             
         except PyMongoError as e:
-            return f"❌ Error retrieving user activity: {e}"
+            return f"Error retrieving user activity: {e}"
     
     def display_celestial_objects(self, format_type: str = None, filters: Dict[str, Any] = None, user: Dict[str, Any] = None) -> str:
         """Display celestial objects data"""
         if not self.mongo_db:
-            return "❌ Database connection not available"
+            return "Database connection not available"
         
         # Check permissions
         if user:
             has_permission, reason = access_control_manager.check_permission(user, "celestial_objects", "view_data")
             if not has_permission:
-                return f"❌ Access denied: {reason}"
+                return f"Access denied: {reason}"
         
         format_type = format_type or self.display_config["default_format"]
         filters = filters or {}
@@ -318,7 +318,7 @@ class DataDisplayManager:
             return self._format_data(formatted_data, format_type, "Celestial Objects")
             
         except PyMongoError as e:
-            return f"❌ Error retrieving celestial objects: {e}"
+            return f"Error retrieving celestial objects: {e}"
     
     def display_system_status(self, format_type: str = None, user: Dict[str, Any] = None) -> str:
         """Display current system status and configuration"""
@@ -326,7 +326,7 @@ class DataDisplayManager:
         if user:
             has_permission, reason = access_control_manager.check_permission(user, "system_config", "view_data")
             if not has_permission:
-                return f"❌ Access denied: {reason}"
+                return f"Access denied: {reason}"
         
         format_type = format_type or self.display_config["default_format"]
         
@@ -361,7 +361,7 @@ class DataDisplayManager:
             return self._format_data([status_data], format_type, "System Status")
             
         except Exception as e:
-            return f"❌ Error retrieving system status: {e}"
+            return f"Error retrieving system status: {e}"
     
     def _format_data(self, data: List[Dict[str, Any]], format_type: str, title: str) -> str:
         """Format data according to specified format type"""
@@ -481,7 +481,7 @@ class DataDisplayManager:
             if user:
                 has_permission, reason = access_control_manager.check_permission(user, data_type, "export_data")
                 if not has_permission:
-                    return f"❌ Export denied: {reason}"
+                    return f"Export denied: {reason}"
             
             # Get data based on type
             if data_type == "telescope":
@@ -495,7 +495,7 @@ class DataDisplayManager:
             elif data_type == "system":
                 data_str = self.display_system_status(format_type, user)
             else:
-                return f"❌ Unknown data type: {data_type}"
+                return f"Unknown data type: {data_type}"
             
             # Generate filename if not provided
             if not filename:
@@ -512,10 +512,10 @@ class DataDisplayManager:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(data_str)
             
-            return f"✅ Data exported to {filepath}"
+            return f"Data exported to {filepath}"
             
         except Exception as e:
-            return f"❌ Export failed: {e}"
+            return f"Export failed: {e}"
     
     def get_available_data_types(self) -> List[str]:
         """Get list of available data types"""

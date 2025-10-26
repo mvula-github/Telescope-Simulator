@@ -34,9 +34,9 @@ class LogAnalyzer:
             self.mongo_client.admin.command('ping')
             self.mongo_db = self.mongo_client[DB_NAME]
             self.mongo_collection = self.mongo_db['enhanced_logs']
-            print("✅ Log analyzer connected to MongoDB")
+            print("Log analyzer connected to MongoDB")
         except Exception as e:
-            print(f"❌ Log analyzer MongoDB connection failed: {e}")
+            print(f"Log analyzer MongoDB connection failed: {e}")
             self.mongo_client = None
             self.mongo_db = None
             self.mongo_collection = None
@@ -53,7 +53,7 @@ class LogAnalyzer:
             }).sort('timestamp', -1))
             return logs
         except PyMongoError as e:
-            print(f"❌ Error fetching logs: {e}")
+            print(f"Error fetching logs: {e}")
             return []
     
     def get_user_activity_summary(self, hours: int = 24) -> Dict[str, Any]:
@@ -130,7 +130,7 @@ class LogAnalyzer:
             }).sort('timestamp', -1))
             return security_logs
         except PyMongoError as e:
-            print(f"❌ Error fetching security logs: {e}")
+            print(f"Error fetching security logs: {e}")
             return []
     
     def get_telescope_usage_stats(self, hours: int = 24) -> Dict[str, Any]:
@@ -190,7 +190,7 @@ class LogAnalyzer:
         # User Activity Summary
         user_stats = self.get_user_activity_summary(24)
         if user_stats:
-            report.append("📊 USER ACTIVITY (Last 24 Hours)")
+            report.append("USER ACTIVITY (Last 24 Hours)")
             report.append("-" * 30)
             
             table_data = []
@@ -212,7 +212,7 @@ class LogAnalyzer:
         # Error Analysis
         error_stats = self.get_error_analysis(24)
         if error_stats['total_errors'] > 0:
-            report.append("❌ ERROR ANALYSIS (Last 24 Hours)")
+            report.append("ERROR ANALYSIS (Last 24 Hours)")
             report.append("-" * 30)
             report.append(f"Total Errors: {error_stats['total_errors']}")
             report.append("")
@@ -232,7 +232,7 @@ class LogAnalyzer:
         # Security Events
         security_events = self.get_security_events(24)
         if security_events:
-            report.append("🔒 SECURITY EVENTS (Last 24 Hours)")
+            report.append("SECURITY EVENTS (Last 24 Hours)")
             report.append("-" * 30)
             report.append(f"Total Security Events: {len(security_events)}")
             
@@ -246,7 +246,7 @@ class LogAnalyzer:
         # Telescope Usage
         telescope_stats = self.get_telescope_usage_stats(24)
         if telescope_stats['total_movements'] > 0:
-            report.append("🔭 TELESCOPE USAGE (Last 24 Hours)")
+            report.append("TELESCOPE USAGE (Last 24 Hours)")
             report.append("-" * 30)
             report.append(f"Total Movements: {telescope_stats['total_movements']}")
             report.append(f"Success Rate: {telescope_stats['success_rate']:.1f}%")
@@ -300,7 +300,7 @@ def main():
     analyzer = LogAnalyzer()
     
     if analyzer.mongo_collection:
-        print("🔍 Testing Log Analyzer...")
+        print("Testing Log Analyzer...")
         
         # Generate daily report
         report = analyzer.generate_daily_report()
@@ -308,9 +308,9 @@ def main():
         
         # Test CSV export
         result = analyzer.export_logs_to_csv(24)
-        print(f"\n📁 {result}")
+        print(f"\n{result}")
     else:
-        print("❌ Log analyzer not available - MongoDB connection failed")
+        print("Log analyzer not available - MongoDB connection failed")
 
 if __name__ == "__main__":
     main()

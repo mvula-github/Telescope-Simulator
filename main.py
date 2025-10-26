@@ -31,7 +31,7 @@ try:
     from simulation.track_objects import create_object, list_objects, update_object, delete_object, objects_collection
     from users.middleware.auth import authenticate_user
     
-    print("uccessfully imported from new package structure!")
+    print("Successfully imported from new package structure!")
     
 except ImportError as e:
     print(f"Import error: {e}")
