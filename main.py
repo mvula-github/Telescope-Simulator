@@ -31,11 +31,11 @@ try:
     from simulation.track_objects import create_object, list_objects, update_object, delete_object, objects_collection
     from users.middleware.auth import authenticate_user
     
-    print("✅ Successfully imported from new package structure!")
+    print("uccessfully imported from new package structure!")
     
 except ImportError as e:
-    print(f"⚠️  Import error: {e}")
-    print("🔄 Falling back to old imports...")
+    print(f"Import error: {e}")
+    print("Falling back to old imports...")
     
     # Fallback to old imports (in case migration isn't complete)
     import core.file_handling as FH
@@ -127,11 +127,11 @@ def authenticate() -> Optional[dict]:
     def get_user_by_username(username):
         try:
             if users_collection is None:
-                print("❌ Database connection not available")
+                print("Database connection not available")
                 return None
             return users_collection.find_one({"username": username})
         except Exception as e:
-            print(f"❌ Database error: {e}")
+            print(f"Database error: {e}")
             return None
     
     max_attempts = 3
@@ -143,7 +143,7 @@ def authenticate() -> Optional[dict]:
             # Debug: Test user lookup first
             test_user = get_user_by_username(username)
             if test_user is None:
-                print(f"❌ User '{username}' not found in database")
+                print(f"User '{username}' not found in database")
                 if attempt < max_attempts - 1:
                     print(f"Attempt {attempt + 1} of {max_attempts}. Try again.")
                 continue
@@ -509,7 +509,9 @@ def celestial_code_input_validation(code: str) -> bool:
 # Configuration functions
 def change_telescope_location():
     """Change telescope location settings with validation."""
-    print("\n=== CHANGE TELESCOPE LOCATION ===")
+    print("*" * 50)
+    print("\nCHANGE TELESCOPE LOCATION")
+    print("*" * 50)
     print("Current telescope location:")
     print(f"  Latitude: {config.get('latitude', 'Not set')}°")
     print(f"  Longitude: {config.get('longitude', 'Not set')}°")
@@ -544,22 +546,24 @@ def change_telescope_location():
             config.set('longitude', lon)
             config.set('elevation', elev)
             config.save()
-            print("✅ Telescope location updated successfully!")
+            print("Telescope location updated successfully!")
             FH.write_log("admin", "Change Location", "success", f"Updated location to Lat: {lat}, Lon: {lon}, Elev: {elev}", "admin")
         else:
             print("Changes cancelled.")
         
     except ValueError:
-        print("❌ Invalid input. Please enter numeric values.")
+        print("Invalid input. Please enter numeric values.")
         FH.write_log("admin", "Change Location", "error", "Invalid input provided", "admin")
     except Exception as e:
-        print(f"❌ Error updating location: {e}")
+        print(f"Error updating location: {e}")
         FH.write_log("admin", "Change Location", "error", str(e), "admin")
 
 def change_movement_settings():
     """Change telescope movement settings."""
-    print("\n=== CHANGE MOVEMENT SETTINGS ===")
+    print("*" * 50)
+    print("\nCHANGE MOVEMENT SETTINGS")
     print("Current movement settings:")
+    print("*" * 50)
     print(f"  Movement Timeout: {config.get('movement_timeout', 10)} seconds")
     print(f"  Position Tolerance: {config.get('position_tolerance', 0.01)} degrees")
     print(f"  Clamp to Limits: {config.get('clamp_to_limits', True)}")
@@ -604,21 +608,23 @@ def change_movement_settings():
             config.set('invert_elevation_axis', invert_elevation)
             config.set('force_first_movement_clockwise', force_clockwise)
             config.save()
-            print("✅ Movement settings updated successfully!")
+            print("Movement settings updated successfully!")
             FH.write_log("admin", "Change Movement Settings", "success", f"Updated movement settings", "admin")
         else:
             print("Changes cancelled.")
             
     except ValueError:
-        print("❌ Invalid input. Please enter numeric values.")
+        print("Invalid input. Please enter numeric values.")
         FH.write_log("admin", "Change Movement Settings", "error", "Invalid input provided", "admin")
     except Exception as e:
-        print(f"❌ Error updating movement settings: {e}")
+        print(f"Error updating movement settings: {e}")
         FH.write_log("admin", "Change Movement Settings", "error", str(e), "admin")
 
 def change_safety_settings():
     """Change telescope safety settings."""
-    print("\n=== CHANGE SAFETY SETTINGS ===")
+    print("*" * 50)
+    print("\nCHANGE SAFETY SETTINGS")
+    print("*" * 50)
     print("Current safety settings:")
     print(f"  Prevent Below Horizon: {config.get('prevent_below_horizon', True)}")
     print(f"  Safety Altitude Margin: {config.get('safety_alt_margin_deg', 0.5)}°")
@@ -652,21 +658,23 @@ def change_safety_settings():
             config.set('safety_alt_margin_deg', alt_margin)
             config.set('safety_az_margin_deg', az_margin)
             config.save()
-            print("✅ Safety settings updated successfully!")
+            print("Safety settings updated successfully!")
             FH.write_log("admin", "Change Safety Settings", "success", f"Updated safety settings", "admin")
         else:
             print("Changes cancelled.")
             
     except ValueError:
-        print("❌ Invalid input. Please enter numeric values.")
+        print("Invalid input. Please enter numeric values.")
         FH.write_log("admin", "Change Safety Settings", "error", "Invalid input provided", "admin")
     except Exception as e:
-        print(f"❌ Error updating safety settings: {e}")
+        print(f"Error updating safety settings: {e}")
         FH.write_log("admin", "Change Safety Settings", "error", str(e), "admin")
 
 def change_simulation_settings():
     """Change simulation and joint settings."""
-    print("\n=== CHANGE SIMULATION SETTINGS ===")
+    print("*" * 50)
+    print("\nCHANGE SIMULATION SETTINGS")
+    print("*" * 50)
     print("Current simulation settings:")
     print(f"  Base Joint Name: {config.get('base_joint_name', 'Base_joint')}")
     print(f"  Mount Joint Name: {config.get('mount_joint_name', 'Mount_joint')}")
@@ -730,38 +738,45 @@ def change_simulation_settings():
             config.set('tracking_in_background', tracking_background)
             config.set('headless_tracking', headless_tracking)
             config.save()
-            print("✅ Simulation settings updated successfully!")
+            print("Simulation settings updated successfully!")
             FH.write_log("admin", "Change Simulation Settings", "success", f"Updated simulation settings", "admin")
         else:
             print("Changes cancelled.")
             
     except ValueError:
-        print("❌ Invalid input. Please enter numeric values.")
+        print("Invalid input. Please enter numeric values.")
         FH.write_log("admin", "Change Simulation Settings", "error", "Invalid input provided", "admin")
     except Exception as e:
-        print(f"❌ Error updating simulation settings: {e}")
+        print(f"Error updating simulation settings: {e}")
         FH.write_log("admin", "Change Simulation Settings", "error", str(e), "admin")
 
 def view_all_settings():
     """Display all current configuration settings."""
-    print("\n=== ALL CONFIGURATION SETTINGS ===")
-    print("=" * 50)
+    print("*" * 50)
+    print("\nLL CONFIGURATION SETTINGS")
+    print("*" * 50)
     
     # Location settings
-    print("📍 LOCATION SETTINGS:")
+    print("*" * 50)
+    print("LOCATION SETTINGS:")
+    print("*" * 50)
     print(f"  Latitude: {config.get('latitude', 'Not set')}°")
     print(f"  Longitude: {config.get('longitude', 'Not set')}°")
     print(f"  Elevation: {config.get('elevation', 'Not set')} meters")
     
     # Movement limits
-    print("\n🎯 MOVEMENT LIMITS:")
+    print("*" * 50)
+    print("\nMOVEMENT LIMITS:")
+    print("*" * 50)
     alt_limits = config.get('altitude_limits', [5, 90])
     az_limits = config.get('azimuth_limits', [25, 335])
     print(f"  Altitude: {alt_limits[0]}° to {alt_limits[1]}°")
     print(f"  Azimuth: {az_limits[0]}° to {az_limits[1]}°")
     
     # Movement settings
-    print("\n⚙️ MOVEMENT SETTINGS:")
+    print("*" * 50)
+    print("\nMOVEMENT SETTINGS:")
+    print("*" * 50)
     print(f"  Movement Timeout: {config.get('movement_timeout', 10)} seconds")
     print(f"  Position Tolerance: {config.get('position_tolerance', 0.01)} degrees")
     print(f"  Clamp to Limits: {config.get('clamp_to_limits', True)}")
@@ -769,13 +784,17 @@ def view_all_settings():
     print(f"  Force First Movement Clockwise: {config.get('force_first_movement_clockwise', False)}")
     
     # Safety settings
-    print("\n🛡️ SAFETY SETTINGS:")
+    print("*" * 50)
+    print("\nSAFETY SETTINGS:")
+    print("*" * 50)
     print(f"  Prevent Below Horizon: {config.get('prevent_below_horizon', True)}")
     print(f"  Safety Altitude Margin: {config.get('safety_alt_margin_deg', 0.5)}°")
     print(f"  Safety Azimuth Margin: {config.get('safety_az_margin_deg', 1.0)}°")
     
     # Simulation settings
-    print("\n🎮 SIMULATION SETTINGS:")
+    print("*" * 50)
+    print("\nSIMULATION SETTINGS:")
+    print("*" * 50)
     print(f"  Base Joint Name: {config.get('base_joint_name', 'Base_joint')}")
     print(f"  Mount Joint Name: {config.get('mount_joint_name', 'Mount_joint')}")
     print(f"  Base Max Force: {config.get('base_max_force', 1000.0)} N")
@@ -789,7 +808,9 @@ def view_all_settings():
 
 def change_telescope_limits():
     """Change telescope movement limits with validation."""
-    print("\n=== CHANGE TELESCOPE LIMITS ===")
+    print("*" * 50)
+    print("\nCHANGE TELESCOPE LIMITS")
+    print("*" * 50)
     print("Current telescope limits:")
     alt_limits = config.get('altitude_limits', [5, 90])
     az_limits = config.get('azimuth_limits', [25, 335])
@@ -835,16 +856,16 @@ def change_telescope_limits():
             config.set('altitude_limits', [alt_min, alt_max])
             config.set('azimuth_limits', [az_min, az_max])
             config.save()
-            print("✅ Telescope limits updated successfully!")
+            print("Telescope limits updated successfully!")
             FH.write_log("admin", "Change Limits", "success", f"Updated limits: Alt {alt_min}-{alt_max}°, Az {az_min}-{az_max}°", "admin")
         else:
             print("Changes cancelled.")
         
     except ValueError:
-        print("❌ Invalid input. Please enter numeric values.")
+        print("Invalid input. Please enter numeric values.")
         FH.write_log("admin", "Change Limits", "error", "Invalid input provided", "admin")
     except Exception as e:
-        print(f"❌ Error updating limits: {e}")
+        print(f"Error updating limits: {e}")
         FH.write_log("admin", "Change Limits", "error", str(e), "admin")
 
 # Display functions
@@ -927,7 +948,9 @@ def display_available_celestial_objects():
 def create_object():
     """Wrapper function to create a new celestial object with user input."""
     try:
-        print("\n=== CREATE CELESTIAL OBJECT ===")
+        print("*" * 50)
+        print("\nCREATE CELESTIAL OBJECT")
+        print("*" * 50)
         name = input("Enter object name: ").strip()
         if not name:
             print("Error: Object name cannot be empty.")
@@ -966,7 +989,9 @@ def create_object():
 def list_objects():
     """Wrapper function to list celestial objects."""
     try:
-        print("\n=== LIST CELESTIAL OBJECTS ===")
+        print("*" * 50)
+        print("\nLIST CELESTIAL OBJECTS")
+        print("*" * 50)
         # Use show_all=True to display all objects for admin
         from simulation.track_objects import list_objects as list_objects_func
         objects = list_objects_func(show_all=True)
@@ -980,8 +1005,9 @@ def list_objects():
 def update_object():
     """Wrapper function to update a celestial object with user input."""
     try:
-        print("\n=== UPDATE CELESTIAL OBJECT ===")
-        
+        print("*" * 50)
+        print("\nUPDATE CELESTIAL OBJECT")
+        print("*" * 50)
         # First, show available objects
         print("Available objects:")
         from simulation.track_objects import list_objects as list_objects_func
@@ -1025,8 +1051,9 @@ def update_object():
 def delete_object():
     """Wrapper function to delete a celestial object with user input."""
     try:
-        print("\n=== DELETE CELESTIAL OBJECT ===")
-        
+        print("*" * 50)
+        print("\nDELETE CELESTIAL OBJECT")
+        print("*" * 50)
         # First, show available objects
         print("Available objects:")
         from simulation.track_objects import list_objects as list_objects_func
@@ -1063,8 +1090,9 @@ def delete_object():
 
 # Main application loop
 def main():
-    print("🔭 Welcome to the Telescope Simulator!")
-    print("=" * 50)
+    print("*" * 50)
+    print("Welcome to the Telescope Simulator!")
+    print("*" * 50)
     
     # Initialize system with default config values
     try:
@@ -1096,9 +1124,9 @@ def main():
                 config.set(key, default_value)
         
         config.save()
-        print("✅ System configuration initialized with defaults")
+        print("System configuration initialized with defaults")
     except Exception as e:
-        print(f"⚠️  Warning: Could not initialize config defaults: {e}")
+        print(f"Warning: Could not initialize config defaults: {e}")
     
     # Authenticate user
     user = authenticate()
